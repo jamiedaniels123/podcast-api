@@ -9,7 +9,7 @@
 require_once("../lib/config.php");
 require_once("../lib/classes/action-admin.class.php");
 require_once("../lib/classes/output.class.php");
-require_once("../lib/pstools.inc.php");
+// require_once("../lib/pstools.inc.php");
 require_once("../cron.php");
 
 ?>

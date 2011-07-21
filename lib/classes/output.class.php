@@ -37,9 +37,9 @@ class Default_Model_Output_Class
 		$postData=array('mess'=>json_encode($postData));
 		$response=$this->rest_helper($mediaUrl, $postData, 'POST', 'json');
 
-		if ((isset($command) && $command!='poll-media' && $command!='poll-encoder') || (isset($response['status']) && $response['status'] =='NACK')) {
-			$sqlLogging = "INSERT INTO `api_log` (`al_message`, `al_reply`, `al_dest`, `al_timestamp`) VALUES ( '".$messData."', '".serialize($response)."', '".$mediaUrl."', '".date("Y-m-d H:i:s", time())."' )";
-			$result = $mysqli->query($sqlLogging);
+		if ((isset($command) && $command!='poll-media' && $command!='poll-encoder') || (isset($response['status']) && ($response['status'] =='NACK' || $response['status'] =='TIMEOUT' ))) {
+			$result = $mysqli->query("	INSERT INTO `api_log` (`al_message`, `al_reply`, `al_dest`, `al_timestamp`) 
+												VALUES ( '".$messData."', '".serialize($response)."', '".$mediaUrl."', '".date("Y-m-d H:i:s", time())."' )");
 		}
 		
 		return $response;
@@ -57,8 +57,8 @@ class Default_Model_Output_Class
 		$response=$this->rest_helper($mediaUrl, $postData, 'POST', 'json');
 
 		if ((isset($command) && $command!='') || (isset($response['status']) && $response['status'] !='')) {
-			$sqlLogging = "INSERT INTO `api_log` (`al_message`, `al_reply`, `al_dest`, `al_timestamp`) VALUES ( '".$messData."', '".serialize($response)."', '".$mediaUrl."', '".date("Y-m-d H:i:s", time())."' )";
-			$result = $mysqli->query($sqlLogging);
+			$result = $mysqli->query("	INSERT INTO `api_log` (`al_message`, `al_reply`, `al_dest`, `al_timestamp`) 
+												VALUES ( '".$messData."', '".serialize($response)."', '".$mediaUrl."', '".date("Y-m-d H:i:s", time())."' )");
 		}
 
 		return $response;
@@ -78,7 +78,7 @@ class Default_Model_Output_Class
 		}
 
 		$context = stream_context_create($cparams);
-		$timeout = 5;
+		$timeout = 2;
 		$old = ini_set('default_socket_timeout', $timeout);
 
 		$fp = fopen($url, 'rb', false, $context);
@@ -100,18 +100,19 @@ class Default_Model_Output_Class
 		
 		if ($res === false) {
 //			throw new Exception("$verb $url failed: $php_errormsg");
-		  	$r['status']='NACK';
+		  	$r['status']='TIMEOUT';
 		  	$r['error']='message timeout or response fail';
 			return $r;
 		}
 		
 		switch ($format) {
 		case 'json':
-//		$r=$res;
  		  $r = json_decode($res,true);
 
 		  if ($r === null) {
-			  $r['status']='NACK';
+			$r['command']=$url;
+			$r['status']='ACK';
+		  	$r['error']=file_get_contents("php://input");
 //			throw new Exception("failed to decode $res as json");
 		  }
 		  return $r;
@@ -119,7 +120,7 @@ class Default_Model_Output_Class
 		case 'xml':
 		  $r = simplexml_load_string($res);
 		  if ($r === null) {
-			throw new Exception("failed to decode $res as xml");
+//			throw new Exception("failed to decode $res as xml");
 		  }
 		  return $r;
 		}
