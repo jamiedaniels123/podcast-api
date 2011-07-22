@@ -215,9 +215,34 @@ class Default_Model_Action_Class
 
 		global $mysqli, $outObj;
 
-		$reply1=$outObj->message_send('poll-vle', $row1->ad_url, $fdata1,1);
-		if ($reply1['status']=='Y') {	
+		$replyMess=$outObj->message_send('poll-vle', $row1->ad_url, $fdata1,1);
+
+		$data=json_decode($replyMess,true);
+
+// Check we know this command/action
+		$result = $mysqli->query("	SELECT * 
+							FROM command_routes AS cr 
+							WHERE cr.cr_action = '".$data['command']."'");
+		$row = $result->fetch_object();
+		
+		if ($result->num_rows) {
+// Put the command on the queue
+			if ($row->cr_route_type=='queue'){
+				$m_data = $dataObj->queueAction($data['data'],$data['command'],$data['cqIndex'],$data['mqIndex'],$data['step'],$data['timestamp']);
+			}else if ($row->cr_route_type=='direct'){
+				$m_data = $dataObj->doDirectAction($row->cr_function,$data['data']);
+			}
+		}else{
+			$m_data = array('status'=>'NACK', 'data'=>'Command not known!', 'timestamp'=>time());
+		}
+
+		$replyMess=$outObj->message_send('poll-vle', $row1->ad_url, $fdata1,1);
+
+
+		if ($reply2['status']=='Y') {	
 			foreach($reply1['data'] as $k1 => $v1){ 
+
+
 //		print_r($v1);
 				if ($v1['status']=='Y') {
 					$result4 = $mysqli->query("	SELECT aw.wf_steps, `cq_mq_index`, `cq_command`,  `cq_filename`, `cq_data`, `cq_result`, `cq_time`, `cq_update`, `cq_wf_step`, `cq_status` 

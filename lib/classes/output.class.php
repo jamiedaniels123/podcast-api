@@ -28,12 +28,13 @@ class Default_Model_Output_Class
 
 	function message_send($command, $mediaUrl, $data, $number){
 		
-		global $mysqli, $error;
+		global $mysqli, $error, $debug;
 		
 		$postData=array(	'command'=>$command, 'number'=>$number, 'data'=>$data, 'timestamp'=>time());
 //		print_r($postData);
 //		echo $mediaUrl;
 		$messData=json_encode($postData);
+		$debug=$messData;
 		$postData=array('mess'=>json_encode($postData));
 		$response=$this->rest_helper($mediaUrl, $postData, 'POST', 'json');
 

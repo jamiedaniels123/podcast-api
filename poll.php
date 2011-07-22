@@ -22,18 +22,15 @@ if (isset($_REQUEST['number']) && $_REQUEST['number']>=1) $number = $_REQUEST['n
 
 	$result0 = $mysqli->query("SELECT ad.ad_url FROM api_destinations AS ad WHERE ad.ad_name = 'media-api'");
 	$row0 = $result0->fetch_object();
-// echo $row->ad_url;
 	$fdata0 = array('command'=>'poll_media');
 
 	$result1 = $mysqli->query("SELECT ad.ad_url FROM api_destinations AS ad WHERE ad.ad_name = 'encoder-api'");
 	$row1 = $result1->fetch_object();
-// echo $row->ad_url;
 	$fdata1 = array('command'=>'poll_encoder');
 
-//	$result2 = $mysqli->query("SELECT ad.ad_url FROM api_destinations AS ad WHERE ad.ad_name = 'vle-api'");
-//	$row2 = $result2->fetch_object();
-// echo $row->ad_url;
-//	$fdata2= array('command'=>'poll_vle');
+	$result2 = $mysqli->query("SELECT ad.ad_url FROM api_destinations AS ad WHERE ad.ad_name = 'vle-api'");
+	$row2 = $result2->fetch_object();
+	$fdata2= array('command'=>'poll_vle');
 
 	for ( $i = 1; $i <= $number; $i++) {
 

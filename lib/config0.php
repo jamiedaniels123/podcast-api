@@ -18,7 +18,8 @@ $dbLogin = array ('dbhost' => "localhost", 'dbname' => "admin-api", 'dbusername'
 
 date_default_timezone_set("Europe/London");
 		
-//		$adminUrl="http://localhost/api-admin/admin.php";
+		$vleApiUrl="http://podcast-api-dev.open.ac.uk/vle/";
+		$adminVleUrl="http://podcast-admin-dev.open.ac.uk/vles/add/";
 		$adminUrl="http://podcast-api-dev.open.ac.uk/admin.php";
 //		$mediaUrl="http://localhost/api-admin/";
 //		$mediaUrl="http://podcast-api-dev.open.ac.uk/";
