@@ -213,14 +213,14 @@ class Default_Model_Action_Class
 
 	public function pollVLE($row1, $fdata1) {
 
-		global $mysqli, $outObj;
+//		global $mysqli, $outObj;
 
-		$replyMess=$outObj->message_send('poll-vle', $row1->ad_url, $fdata1,1);
+		$replyMess=$this->outObj->message_send('poll-vle', $row1->ad_url, $fdata1,1);
 
 		$data=json_decode($replyMess,true);
 
 // Check we know this command/action
-		$result = $mysqli->query("	SELECT * 
+		$result = $this->mysqli->query("	SELECT * 
 							FROM command_routes AS cr 
 							WHERE cr.cr_action = '".$data['command']."'");
 		$row = $result->fetch_object();
@@ -451,6 +451,7 @@ class Default_Model_Action_Class
 					$mysqli->query("	UPDATE `queue_messages` 
 											SET `mq_status`= 'F' 
 											WHERE mq_index='".$row2->mq_index."' ");
+											mail ("i.newton@open.ac.uk", "Admin API callback error", "Sent:\n\n".print_r($mqResArr)."\n\nReply:\n\n".print_r($result3),"From:i.newton@open.ac.uk");
 				}  else  if ($result3['status'] == "ACK"){
 					$mysqli->query("	UPDATE `queue_messages` 
 											SET `mq_status`= 'C' 
@@ -463,10 +464,12 @@ class Default_Model_Action_Class
 					$mysqli->query("	UPDATE `queue_messages` 
 											SET `mq_status`= 'R', `mq_retry_count`= mq_retry_count + 1 
 											WHERE mq_index='".$row2->mq_index."' ");
+											mail ("i.newton@open.ac.uk", "Admin API callback warning resending ->", "Sent:\n\n".print_r($mqResArr)."\n\nReply:\n\n".print_r($result3),"From:i.newton@open.ac.uk");
 				} else {
 					$mysqli->query("	UPDATE `queue_messages` 
 											SET `mq_status`= 'T' 
 											WHERE mq_index='".$row2->mq_index."' ");
+											mail ("i.newton@open.ac.uk", "Admin API callback error connection timed out!", "Sent:\n\n".print_r($mqResArr)."\n\nReply:\n\nNone","From:i.newton@open.ac.uk");
 				}			
 			}
 		}
