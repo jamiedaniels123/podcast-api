@@ -38,7 +38,28 @@ class Default_Model_Output_Class
 		$postData=array('mess'=>json_encode($postData));
 		$response=$this->rest_helper($mediaUrl, $postData, 'POST', 'json');
 
-		if ((isset($command) && $command!='poll-media' && $command!='poll-encoder') || (isset($response['status']) && ($response['status'] =='NACK' || $response['status'] =='TIMEOUT' ))) {
+		if ((isset($command) && $command!='poll-media' && $command!='poll-encoder') || (isset($response['status']) && ($response['status'] =='NACK' || $response['status'] =='TIMEOUT' || $response['status'] =='Y' ))) {
+//		if (isset($command) && $command!='poll-encoder') {
+			$result = $mysqli->query("	INSERT INTO `api_log` (`al_message`, `al_reply`, `al_dest`, `al_timestamp`) 
+												VALUES ( '".$messData."', '".serialize($response)."', '".$mediaUrl."', '".date("Y-m-d H:i:s", time())."' )");
+		}
+		
+		return $response;
+	} 
+
+	function message_send_callback($command, $mediaUrl, $data, $number, $failed){
+		
+		global $mysqli, $error, $debug;
+		
+		$postData=array(	'command'=>$command, 'number'=>$number, 'failed'=>$failed, 'data'=>$data, 'timestamp'=>time());
+//		print_r($postData);
+//		echo $mediaUrl;
+		$messData=json_encode($postData);
+		$debug=$messData;
+		$postData=array('mess'=>json_encode($postData));
+		$response=$this->rest_helper($mediaUrl, $postData, 'POST', 'json');
+
+		if (isset($response['status'])) {
 			$result = $mysqli->query("	INSERT INTO `api_log` (`al_message`, `al_reply`, `al_dest`, `al_timestamp`) 
 												VALUES ( '".$messData."', '".serialize($response)."', '".$mediaUrl."', '".date("Y-m-d H:i:s", time())."' )");
 		}
@@ -79,14 +100,14 @@ class Default_Model_Output_Class
 		}
 
 		$context = stream_context_create($cparams);
-		$timeout = 2;
-		$old = ini_set('default_socket_timeout', $timeout);
+//		$timeout = 2;
+//		$old = ini_set('default_socket_timeout', $timeout);
 
 		$fp = fopen($url, 'rb', false, $context);
 
-		ini_set('default_socket_timeout', $old);
-		stream_set_timeout($fp, $timeout);
-		stream_set_blocking($fp, 0);
+//		ini_set('default_socket_timeout', $old);
+//		stream_set_timeout($fp, $timeout);
+//		stream_set_blocking($fp, 0);
 
 		if (!$fp) {
 			$res = false;
@@ -113,7 +134,7 @@ class Default_Model_Output_Class
 		  if ($r === null) {
 			$r['command']=$url;
 			$r['status']='ACK';
-		  	$r['error']=file_get_contents("php://input");
+		  	$r['error']=$res;
 //			throw new Exception("failed to decode $res as json");
 		  }
 		  return $r;

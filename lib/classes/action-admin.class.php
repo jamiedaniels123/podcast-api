@@ -134,9 +134,10 @@ class Default_Model_Action_Class
 		global $mysqli, $outObj;
 
 		$reply0=$outObj->message_send('poll-media', $row0->ad_url, $fdata0,1);
+		
 		if ($reply0['status']=='Y') {	
 			foreach($reply0['data'] as $k0 => $v0){ 
-				if ($v0['status']=='Y') {
+				if ($v0['status']=='Y' || $v0['status']=='F') {
 					$result2 = $mysqli->query("	SELECT aw.wf_steps, cq_wf_step  
 															FROM queue_commands AS cq, command_routes AS cr, api_workflows AS aw 
 															WHERE cq.cq_command=cr.cr_action 
@@ -145,8 +146,8 @@ class Default_Model_Action_Class
 															AND `cq_index`=  '".$v0['cqIndex']."' ");
 					if ($result2->num_rows) {
 						$row2=$result2->fetch_object();
-						if ( $v0['step'] == $row2->wf_steps ) $status=$v0['status']; else $status='N';
-						if ($v0['step'] == $row2->cq_wf_step && $v0['step'] != $row2->wf_steps ) $step= $v0['step']+1; else $step= $v0['step']; 
+						if ( $v0['step'] == $row2->wf_steps || $v0['status']=='F') $status=$v0['status']; else $status='N';
+						if ($v0['step'] == $row2->cq_wf_step && $v0['step'] != $row2->wf_steps && $v0['status']=='Y') $step= $v0['step']+1; else $step= $v0['step']; 
  
 						$result3 = $mysqli->query("	UPDATE `queue_commands` 
 																SET `cq_result`='".serialize($v0)."', `cq_status`='".$status."', `cq_wf_step`= '".$step."', `cq_update`='".date("Y-m-d H:i:s", time())."' 
@@ -172,7 +173,7 @@ class Default_Model_Action_Class
 		if ($reply1['status']=='Y') {	
 			foreach($reply1['data'] as $k1 => $v1){ 
 //		print_r($v1);
-				if ($v1['status']=='Y') {
+				if ($v1['status']=='Y' || $v1['status']=='F') {
 					$result4 = $mysqli->query("	SELECT aw.wf_steps, `cq_mq_index`, `cq_command`,  `cq_filename`, `cq_data`, `cq_result`, `cq_time`, `cq_update`, `cq_wf_step`, `cq_status` 
 															FROM queue_commands AS cq, command_routes AS cr, api_workflows AS aw 
 															WHERE cq.cq_command=cr.cr_action 
@@ -181,7 +182,7 @@ class Default_Model_Action_Class
 					if ($result4->num_rows) {
 						$row4=$result4->fetch_object();
 						if ($v1['step'] == $row4->cq_wf_step ) $step= $v1['step']+1; else $step = $v1['step']; 
-						if ( $v1['step'] == $row4->wf_steps ) {
+						if ( $v1['step'] == $row4->wf_steps  || $v1['status']=='F') {
 							$status=$v1['status'];
 							$step= $v1['step'];
 						} else {
@@ -353,8 +354,13 @@ class Default_Model_Action_Class
 
 // Call the action with the data
 					$retData = $this->$function(unserialize($row->cq_data),1,$row->cq_index);
-					if ($row->wf_steps > $row->wf_step && $retData['result']=='Y') $step=$row->wf_step +1; else $step=$row->wf_step;
-					if ($row->wf_steps == $row->wf_step) $status='Y'; else  $status='N';
+					if ($retData['result']=='F') {
+						$status='F';
+						$step=$row->wf_step;
+					} else {
+						if ($row->wf_steps > $row->wf_step) $step=$row->wf_step +1; else $step=$row->wf_step;
+						if ($row->wf_steps == $row->wf_step) $status='Y'; else  $status='N';
+					}
 					$result = $mysqli->query("	UPDATE `queue_commands` 
 														SET `cq_result`='".serialize($retData)."', `cq_status`='".$status."', `cq_wf_step`='".$step."', `cq_update`='".date("Y-m-d H:i:s", time())."' 
 														WHERE `cq_index`=  '".$row->cq_index."' ");
@@ -368,9 +374,10 @@ class Default_Model_Action_Class
 		global $source, $destination; 
 
 		$retData= array('cqIndex'=>$cqIndex, 'filename'=> $mArr['filename'], 'source_path'=> $mArr['source_path'], 'destination_path'=> $mArr['destination_path'], 'number'=> 0, 'result'=> 'N') ;
+
 		$outFile = urlencode($mArr['destination_path'].$mArr['filename']);
- 		$retData['scp'] = $this->transfer($source['admin'].$mArr['source_path'].$mArr['filename'] , $destination['media'].$outFile);
-		if ($retData['scp'][0]==0) $retData['result']='Y';
+ 		$retData['scp'] = $this->transfer($source['admin'].$mArr['source_path'].$mArr['filename'] , $destination['media'].$cqIndex."_".$outFile);
+		if ($retData['scp'][0]==0) $retData['result']='Y'; else $retData['result']='F'; 
 
 		return $retData;
 	}
@@ -391,8 +398,6 @@ class Default_Model_Action_Class
 		$row5 = $result5->fetch_object();
 
 		$postRetData=$outObj->message_send_next_command($row5->wf_command,  $row5->ad_url, $cqIndex,  $row5->cq_mq_index, $row5->wf_step, $mArr, $mNum);
-// print_r($postRetData);
-		// if ($postRetData['status']=='ACK') 
 		$retData['result']='Y';
 		$retData['debug']=$postRetData;
 
@@ -411,17 +416,20 @@ class Default_Model_Action_Class
 												AND cr.cr_action=mq.mq_command 
 												AND cr.cr_source=ad.ad_name 
 												AND mq.mq_index = '".$mqIndex."' 
-												AND cq.cq_status='Y'");
+												AND cq.cq_status IN ('Y','F')");
 		if ($result6->num_rows!=0) {
 			$row6 = $result6->fetch_object();
 			if ($row6->num == $row6->mq_number) {
 				$result3 = $mysqli->query("SELECT * FROM queue_messages AS mq, queue_commands cq WHERE mq.mq_index=cq.cq_mq_index AND mq.mq_index = '".$mqIndex."'");
 				$i=0;
+				$j=0;
 				while(	$row3 = $result3->fetch_object()){
-					$r_data[]= unserialize($row3->cq_result); 
+					$r_data[$i]= unserialize($row3->cq_result); 
+					$r_data[$i]['number']=$i+1;
+					if ($row3->cq_status=='F') $j++;
 					$i++;
 				}
-				$result2 = $mysqli->query("UPDATE `queue_messages` SET `mq_time_complete` = '".date("Y-m-d H:i:s", time())."' ,`mq_status`= 'R', `mq_result`='".serialize($r_data)."' where mq_index='".$mqIndex."' ");
+				$result2 = $mysqli->query("UPDATE `queue_messages` SET `mq_time_complete` = '".date("Y-m-d H:i:s", time())."' ,`mq_status`= 'R', `mq_failed`= ".$j.", `mq_result`='".serialize($r_data)."' where mq_index='".$mqIndex."' ");
 
 			}
 		}
@@ -433,7 +441,7 @@ class Default_Model_Action_Class
 		
 		global $mysqli, $outObj;
 
-		$result2 = $mysqli->query( "	SELECT mq.mq_index, mq.mq_status, mq.mq_number, mq.mq_result, mq_retry_count, ad.ad_url, cr.cr_callback 
+		$result2 = $mysqli->query( "	SELECT mq.mq_index, mq.mq_status, mq.mq_number, mq.mq_failed, mq.mq_result, mq_retry_count, ad.ad_url, cr.cr_callback 
 												FROM queue_messages AS mq, command_routes AS cr, api_destinations AS ad 
 												WHERE cr.cr_action=mq.mq_command 
 												AND cr.cr_source=ad.ad_name 
@@ -444,7 +452,7 @@ class Default_Model_Action_Class
 			while(	$row2 = $result2->fetch_object()) { 
 	
 				$mqResArr = unserialize($row2->mq_result);
-				$result3=$outObj->message_send($row2->cr_callback, $row2->ad_url, $mqResArr, $row2->mq_number);
+				$result3=$outObj->message_send_callback($row2->cr_callback, $row2->ad_url, $mqResArr, $row2->mq_number, $row2->mq_failed);
 
 // $result3['status']="ACK"; // Fix the result until the admin can return a useful response.
 				if ($result3['status'] == "NACK" ) {

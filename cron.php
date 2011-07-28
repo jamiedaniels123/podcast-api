@@ -29,25 +29,33 @@
 // - Proccessing of  commands part -----------------------------------------------------------------------------------------
 
 // Get the actions from the queue table
+	$timeStart= time();
 
-	$result1 = $mysqli->query("	SELECT mq.mq_index, mq.mq_status 
-											FROM queue_messages AS mq 
-											WHERE mq.mq_status IN('N') 
-											ORDER BY mq.mq_time_start");
+// Loop every 3 seconds if we can 
+	while ( time() < $timeStart + 8 ) {
 
-	if (isset($result1->num_rows)) {
+		$result1 = $mysqli->query("	SELECT mq.mq_index, mq.mq_status 
+												FROM queue_messages AS mq 
+												WHERE mq.mq_status IN('N') 
+												ORDER BY mq.mq_time_start");
 	
-// Process the outstanding commands for each message
-		$cqCommand="'queue','direct'";
-		while(	$row1 = $result1->fetch_object()) { 
-			if ($row1->mq_status=='N') $m_data = $dataObj->doNextAction($row1->mq_index, $cqCommand);	
-			$reply = $dataObj->doMessageCompletion($row1->mq_index);
+		if (isset($result1->num_rows)) {
+		
+	// Process the outstanding commands for each message
+			$cqCommand="'queue','direct'";
+			while(	$row1 = $result1->fetch_object()) { 
+				if ($row1->mq_status=='N') $m_data = $dataObj->doNextAction($row1->mq_index, $cqCommand);	
+				$reply = $dataObj->doMessageCompletion($row1->mq_index);
+			}
 		}
+	
+	// - Proccessing callbacks part -----------------------------------------------------------------------------------------
+	
+		$dataObj->doCallback();
+
+		ob_clean();
+		sleep(3);
 	}
-
-// - Proccessing callbacks part -----------------------------------------------------------------------------------------
-
-	$dataObj->doCallback();
 
 // Clean up old completed commands
 
