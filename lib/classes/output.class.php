@@ -31,8 +31,6 @@ class Default_Model_Output_Class
 		global $mysqli, $error, $debug;
 		
 		$postData=array(	'command'=>$command, 'number'=>$number, 'data'=>$data, 'timestamp'=>time());
-//		print_r($postData);
-//		echo $mediaUrl;
 		$messData=json_encode($postData);
 		$debug=$messData;
 		$postData=array('mess'=>json_encode($postData));
@@ -50,18 +48,16 @@ class Default_Model_Output_Class
 	function message_send_callback($command, $mediaUrl, $data, $number, $failed){
 		
 		global $mysqli, $error, $debug;
-		
+
 		$postData=array(	'command'=>$command, 'number'=>$number, 'failed'=>$failed, 'data'=>$data, 'timestamp'=>time());
-//		print_r($postData);
-//		echo $mediaUrl;
 		$messData=json_encode($postData);
 		$debug=$messData;
 		$postData=array('mess'=>json_encode($postData));
 		$response=$this->rest_helper($mediaUrl, $postData, 'POST', 'json');
 
-		if (isset($response['status'])) {
-			$result = $mysqli->query("	INSERT INTO `api_log` (`al_message`, `al_reply`, `al_dest`, `al_timestamp`) 
-												VALUES ( '".$messData."', '".serialize($response)."', '".$mediaUrl."', '".date("Y-m-d H:i:s", time())."' )");
+		if (isset($response)) {
+			$result = $mysqli->query("	INSERT INTO `api_log` (`al_message`, `al_reply`, `al_dest`, `al_result_data`, `al_timestamp`) 
+												VALUES ( '".$messData."', '".serialize($response)."', '".$mediaUrl."',  '".ob_get_contents()."', '".date("Y-m-d H:i:s", time())."' )");
 		}
 		
 		return $response;
@@ -100,15 +96,10 @@ class Default_Model_Output_Class
 		}
 
 		$context = stream_context_create($cparams);
-//		$timeout = 2;
-//		$old = ini_set('default_socket_timeout', $timeout);
 
 		$fp = fopen($url, 'rb', false, $context);
-
-//		ini_set('default_socket_timeout', $old);
-//		stream_set_timeout($fp, $timeout);
-//		stream_set_blocking($fp, 0);
-
+    	stream_set_timeout($fp, 2);
+	
 		if (!$fp) {
 			$res = false;
 		} else {
@@ -118,9 +109,10 @@ class Default_Model_Output_Class
 //			 $meta = stream_get_meta_data($fp);
 //			 var_dump($meta['wrapper_data']);
 			$res = stream_get_contents($fp);
+    		$info = stream_get_meta_data($fp);
 		}
-		
-		if ($res === false) {
+// || isset($info['timed_out'])		
+		if ($res === false || $info['timed_out']) {
 //			throw new Exception("$verb $url failed: $php_errormsg");
 		  	$r['status']='TIMEOUT';
 		  	$r['error']='message timeout or response fail';

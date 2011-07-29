@@ -50,15 +50,15 @@ require_once("./lib/classes/output.class.php");
 	}
 	
 // Log the command and response
-	if (isset($dataMess[1]) && $dataMess[1]!='') {
-		$sqlLogging = "	INSERT INTO `api_log` (`al_message`, `al_reply`, `al_result_data`, `al_source_ip`,`al_timestamp`) 
-								VALUES ( '".$dataMess[1]."', '".serialize($m_data)."', '".serialize($r_data)."', '','".date("Y-m-d H:i:s", time())."' )";
-		$result = $mysqli->query($sqlLogging);
+	if (isset($dataMess[1]) && strlen($dataMess[1])>10) {
+		$result = $mysqli->query("	INSERT INTO `api_log` (`al_message`, `al_reply`, `al_source_ip`,`al_timestamp`) 
+								VALUES ( '".$dataMess[1]."', '".serialize($m_data)."', '".serialize($r_data)."', '".date("Y-m-d H:i:s", time())."' )");
 	}
 // print_r ($m_data);
 
-// Output the result to the caller
-	$jsonData = json_encode($m_data);
-	echo $jsonData;
+// Get rid of any debug and output the result to the caller
+	ob_clean();
+	file_put_contents("php://output", json_encode($m_data));
+//	ob_end_clean();
 
 ?>

@@ -212,79 +212,34 @@ class Default_Model_Action_Class
 
 	}
 
-	public function pollVLE($row1, $fdata1) {
+	public function pollVLE($row2, $fdata1) {
 
 //		global $mysqli, $outObj;
 
-		$replyMess=$this->outObj->message_send('poll-vle', $row1->ad_url, $fdata1,1);
+		$replyMess=$this->outObj->message_send('poll-vle', $row2->ad_url, $fdata1,1);
 
 		$data=json_decode($replyMess,true);
 
 // Check we know this command/action
 		$result = $this->mysqli->query("	SELECT * 
 							FROM command_routes AS cr 
-							WHERE cr.cr_action = '".$data['command']."'");
+							WHERE cr.cr_action = '".$data['command']."' 
+							AND cr.cr_source = 'vle-api' ");
 		$row = $result->fetch_object();
 		
 		if ($result->num_rows) {
 // Put the command on the queue
-			if ($row->cr_route_type=='queue'){
-				$m_data = $dataObj->queueAction($data['data'],$data['command'],$data['cqIndex'],$data['mqIndex'],$data['step'],$data['timestamp']);
-			}else if ($row->cr_route_type=='direct'){
+			if ($row->cr_route_type=='direct'){
 				$m_data = $dataObj->doDirectAction($row->cr_function,$data['data']);
 			}
 		}else{
 			$m_data = array('status'=>'NACK', 'data'=>'Command not known!', 'timestamp'=>time());
+			$replyMess=$outObj->message_send('error-vle', $row1->ad_url, $m_data,1);
 		}
 
-		$replyMess=$outObj->message_send('poll-vle', $row1->ad_url, $fdata1,1);
-
-
-		if ($reply2['status']=='Y') {	
-			foreach($reply1['data'] as $k1 => $v1){ 
-
-
-//		print_r($v1);
-				if ($v1['status']=='Y') {
-					$result4 = $mysqli->query("	SELECT aw.wf_steps, `cq_mq_index`, `cq_command`,  `cq_filename`, `cq_data`, `cq_result`, `cq_time`, `cq_update`, `cq_wf_step`, `cq_status` 
-															FROM queue_commands AS cq, command_routes AS cr, api_workflows AS aw 
-															WHERE cq.cq_command=cr.cr_action 
-															AND cr.cr_index=aw.wf_cr_index and aw.wf_step='".$v1['step']."' 
-															AND `cq_index`=  '".$v1['cqIndex']."' ");
-					if ($result4->num_rows) {
-						$row4=$result4->fetch_object();
-						if ($v1['step'] == $row4->cq_wf_step ) $step= $v1['step']+1; else $step = $v1['step']; 
-						if ( $v1['step'] == $row4->wf_steps ) {
-							$status=$v1['status'];
-							$step= $v1['step'];
-						} else {
-							$status='N'; 
-						}
-						if ( $row4->cq_filename != $v1['data']['filename']){
-							$step= $v1['step']+1;
-							$mData = unserialize($row4->cq_data);
-							$mData['filename'] = $v1['data']['filename']; 
-							$mysqli->query("	INSERT INTO `queue_commands` ( `cq_mq_index`, `cq_command`,  `cq_filename`, `cq_data`, `cq_result`, `cq_time`, `cq_update`, `cq_wf_step`, `cq_status`) 
-													VALUES	('".$row4->cq_mq_index."','".$row4->cq_command."','".$v1['data']['filename']."','".serialize($mData)."','".serialize($v1)."','".$row4->cq_time."','".date("Y-m-d H:i:s", time())."','".$step."', 'N')");
-						}else{ 
-							$result5 = $mysqli->query("	UPDATE `queue_commands` 
-																	SET `cq_result`='".serialize($v1)."', `cq_status`='".$status."', `cq_wf_step`= '".$step."', `cq_update`='".date("Y-m-d H:i:s", time())."' 
-																	WHERE `cq_index`=  '".$v1['cqIndex']."' ");
-						}
-						$mqToCheck1[$v1['mqIndex']]=$v1['mqIndex'];
-					}
-				}
-			}
-			if (isset($mqToCheck1)) {
-				foreach($mqToCheck1 as $k11 => $v11) {
-					$reply10 = $this->doMessageCompletion($v11);
-				}
-			}
-		}
 
 	}
 
-	
 	public function getStatus($mArr,$mNum,$mCommand){
 		
 		$retData= array( 'command'=>'statusReply', 'number'=>'',  'data'=>'') ;
@@ -339,7 +294,7 @@ class Default_Model_Action_Class
 													AND wf.wf_route_type IN (".$cqCommand.") ");
 			if ($result4->num_rows >= 1) $this->processActions($result4);
 //		}
-		 return array('mqIndex'=>$mqIndex);
+		 return array('mqIndex'=>$mqIndex, 'command'=>$cqCommand);
 	}
 
 	function processActions($resultObj) {
@@ -368,6 +323,13 @@ class Default_Model_Action_Class
 
 			}
 	}
+
+	public function doDirectAction($function, $mArr){
+		global $mysqli,$outObj,$mediaUrl;
+			$retData = $this->$function($mArr,1);
+		return $retData;
+	}
+
 
 	function doMediaPushFile($mArr,$mNum,$cqIndex){
 		
@@ -402,6 +364,13 @@ class Default_Model_Action_Class
 		$retData['debug']=$postRetData;
 
 		return $retData;
+	}
+
+	function doPassToAdmin(){
+	
+		global $mysqli, $outObj;
+		
+		
 	}
 
 	public function doMessageCompletion($mqIndex){

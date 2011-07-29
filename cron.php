@@ -66,6 +66,4 @@
 							WHERE mq_time_start < (now() - interval 24 hour) 
 							AND `mq_status`='C' ");
 
-// Report the status of completed tasks
-
 ?>
