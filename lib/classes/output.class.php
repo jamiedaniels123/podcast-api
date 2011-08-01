@@ -26,7 +26,7 @@ class Default_Model_Output_Class
 		}
 	}
 
-	function message_send($command, $mediaUrl, $data, $number){
+	function message_send($command, $apiUrl, $data, $number){
 		
 		global $mysqli, $error, $debug;
 		
@@ -34,18 +34,18 @@ class Default_Model_Output_Class
 		$messData=json_encode($postData);
 		$debug=$messData;
 		$postData=array('mess'=>json_encode($postData));
-		$response=$this->rest_helper($mediaUrl, $postData, 'POST', 'json');
+		$response=$this->rest_helper($apiUrl, $postData, 'POST', 'json');
 
 		if ((isset($command) && $command!='poll-media' && $command!='poll-encoder') || (isset($response['status']) && ($response['status'] =='NACK' || $response['status'] =='TIMEOUT' || $response['status'] =='Y' ))) {
 //		if (isset($command) && $command!='poll-encoder') {
 			$result = $mysqli->query("	INSERT INTO `api_log` (`al_message`, `al_reply`, `al_dest`, `al_timestamp`) 
-												VALUES ( '".$messData."', '".serialize($response)."', '".$mediaUrl."', '".date("Y-m-d H:i:s", time())."' )");
+												VALUES ( '".$messData."', '".serialize($response)."', '".$apiUrl."', '".date("Y-m-d H:i:s", time())."' )");
 		}
 		
 		return $response;
 	} 
 
-	function message_send_callback($command, $mediaUrl, $data, $number, $failed){
+	function message_send_callback($command, $callbackUrl, $data, $number, $failed){
 		
 		global $mysqli, $error, $debug;
 
@@ -53,11 +53,31 @@ class Default_Model_Output_Class
 		$messData=json_encode($postData);
 		$debug=$messData;
 		$postData=array('mess'=>json_encode($postData));
-		$response=$this->rest_helper($mediaUrl, $postData, 'POST', 'json');
+		$response=$this->rest_helper($callbackUrl, $postData, 'POST', 'json');
 
 		if (isset($response)) {
 			$result = $mysqli->query("	INSERT INTO `api_log` (`al_message`, `al_reply`, `al_dest`, `al_result_data`, `al_timestamp`) 
-												VALUES ( '".$messData."', '".serialize($response)."', '".$mediaUrl."',  '".ob_get_contents()."', '".date("Y-m-d H:i:s", time())."' )");
+												VALUES ( '".$messData."', '".serialize($response)."', '".$callbackUrl."',  '".ob_get_contents()."', '".date("Y-m-d H:i:s", time())."' )");
+		}
+		
+		return $response;
+	} 
+
+	function message_send_vle($command, $request, $callbackUrl, $data, $number){
+		
+		global $mysqli, $error, $debug;
+
+		$postData=array(	'command'=>$command, 'request'=>$request,  'number'=>$number, 'data'=>$data, 'timestamp'=>time());
+
+//		print_r($postData);
+		$messData=json_encode($postData);
+		$debug=$messData;
+		$postData=array('mess'=>json_encode($postData));
+		$response=$this->rest_helper($callbackUrl, $postData, 'POST', 'json');
+
+		if (isset($response)) {
+			$result = $mysqli->query("	INSERT INTO `api_log` (`al_message`, `al_reply`, `al_dest`, `al_result_data`, `al_timestamp`) 
+												VALUES ( '".$messData."', '".serialize($response)."', '".$callbackUrl."',  '".ob_get_contents()."', '".date("Y-m-d H:i:s", time())."' )");
 		}
 		
 		return $response;

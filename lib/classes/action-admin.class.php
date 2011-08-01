@@ -212,16 +212,18 @@ class Default_Model_Action_Class
 
 	}
 
-	public function pollVLE($row2, $fdata1) {
+	public function pollVLE($row2, $fdata1, $request) {
 
-//		global $mysqli, $outObj;
+		global $mysqli, $outObj;
+//		echo$request." - ". $row2->ad_url."<br>";
+		$replyMess=$outObj->message_send_vle('poll-vle', $request, $row2->ad_url, $fdata1,1);
 
-		$replyMess=$this->outObj->message_send('poll-vle', $row2->ad_url, $fdata1,1);
-
-		$data=json_decode($replyMess,true);
+		print_r( $replyMess);
+//		$data=json_decode($replyMess,true);
+		$data=$replyMess;
 
 // Check we know this command/action
-		$result = $this->mysqli->query("	SELECT * 
+		$result = $mysqli->query("	SELECT * 
 							FROM command_routes AS cr 
 							WHERE cr.cr_action = '".$data['command']."' 
 							AND cr.cr_source = 'vle-api' ");
@@ -230,11 +232,11 @@ class Default_Model_Action_Class
 		if ($result->num_rows) {
 // Put the command on the queue
 			if ($row->cr_route_type=='direct'){
-				$m_data = $dataObj->doDirectAction($row->cr_function,$data['data']);
+				$m_data = $this->doDirectAction($data['command'], $row->cr_function, $row2->ad_callback_url, $data['data'], $data['number']);
 			}
 		}else{
 			$m_data = array('status'=>'NACK', 'data'=>'Command not known!', 'timestamp'=>time());
-			$replyMess=$outObj->message_send('error-vle', $row1->ad_url, $m_data,1);
+//			$replyMess=$outObj->message_send_vle('error-vle', $request, $row2->ad_url, $m_data,1);
 		}
 
 
@@ -324,9 +326,12 @@ class Default_Model_Action_Class
 			}
 	}
 
-	public function doDirectAction($function, $mArr){
-		global $mysqli,$outObj,$mediaUrl;
-			$retData = $this->$function($mArr,1);
+	public function doDirectAction($command, $function, $callbackUrl,$mArr, $number){
+		
+		echo $function;
+		
+		$retData = $this->$function($command, $callbackUrl, $mArr,$number);
+		
 		return $retData;
 	}
 
@@ -366,11 +371,12 @@ class Default_Model_Action_Class
 		return $retData;
 	}
 
-	function doPassToAdmin(){
-	
-		global $mysqli, $outObj;
+	function doPassToAdmin($command, $callbackUrl, $mArr, $number){
+
+		global $outObj;
 		
-		
+			$result3=$outObj->message_send($command, $callbackUrl, $mArr, $number);
+						
 	}
 
 	public function doMessageCompletion($mqIndex){

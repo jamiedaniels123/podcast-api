@@ -28,13 +28,9 @@ if (isset($_REQUEST['number']) && $_REQUEST['number']>=1) $number = $_REQUEST['n
 	$row1 = $result1->fetch_object();
 	$fdata1 = array('command'=>'poll_encoder');
 
-	$result2 = $mysqli->query("SELECT ad.ad_url FROM api_destinations AS ad WHERE ad.ad_name = 'vle-api'");
+	$result2 = $mysqli->query("SELECT ad.ad_url, ad.ad_callback_url FROM api_destinations AS ad WHERE ad.ad_name = 'vle-api'");
 	$row2 = $result2->fetch_object();
 	$fdata2= array('command'=>'poll_vle');
-
-	$result3 = $mysqli->query("SELECT ad.ad_url FROM api_destinations AS ad WHERE ad.ad_name = 'admin-vle'");
-	$row3 = $result3->fetch_object();
-	$fdata3 = array('command'=>'callback_vle');
 
 	for ( $i = 1; $i <= $number; $i++) {
 
@@ -42,7 +38,7 @@ if (isset($_REQUEST['number']) && $_REQUEST['number']>=1) $number = $_REQUEST['n
 
 		$dataObj->pollEncoder($row1, $fdata1);
 
-//		$dataObj->pollVLE($row2, $row3, $fdata2);
+//		$dataObj->pollVLE($row2, $fdata2);
 
 // sleep for n seconds
 flush();
