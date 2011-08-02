@@ -15,7 +15,7 @@ require_once("./lib/classes/output.class.php");
 	$r_data= '';
 	$mysqli = new mysqli($dbLogin['dbhost'], $dbLogin['dbusername'], $dbLogin['dbuserpass'], $dbLogin['dbname']);
 	$outObj = new Default_Model_Output_Class();
-	$dataObj = new Default_Model_Action_Class($mysqli,$outObj,$apiName);	
+	$dataObj = new Default_Model_Action_Class($mysqli,$outObj);	
 	
 // Grab the posted input stream and decode
 	$dataStream = file_get_contents("php://input");

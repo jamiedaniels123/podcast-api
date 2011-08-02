@@ -13,7 +13,7 @@ require_once("lib/classes/output.class.php");
 // Initialise objects
 	$mysqli = new mysqli($dbLogin['dbhost'], $dbLogin['dbusername'], $dbLogin['dbuserpass'], $dbLogin['dbname']);
 	$outObj = new Default_Model_Output_Class();
-	$dataObj = new Default_Model_Action_Class($mysqli,$outObj,$apiName);	
+	$dataObj = new Default_Model_Action_Class($mysqli,$outObj);	
 
 if (isset($_REQUEST['time']) && $_REQUEST['time']>=1) $time = $_REQUEST['time']; else $time=1;
 if (isset($_REQUEST['number']) && $_REQUEST['number']>=1) $number = $_REQUEST['number']; else $number=1;

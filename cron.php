@@ -9,7 +9,7 @@
 // Initialise objects
 	$mysqli = new mysqli($dbLogin['dbhost'], $dbLogin['dbusername'], $dbLogin['dbuserpass'], $dbLogin['dbname']);
 	$outObj = new Default_Model_Output_Class();
-	$dataObj = new Default_Model_Action_Class($mysqli,$outObj,$apiName);
+	$dataObj = new Default_Model_Action_Class($mysqli,$outObj);
 	
 	$apCommand="curl -d \"number=10&time1\" http://podcast-api-dev.open.ac.uk/poll.php";	
 
