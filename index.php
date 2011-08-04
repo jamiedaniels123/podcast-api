@@ -5,7 +5,7 @@
 	#	Test version  
 	#	Admin-api input controller to accept post requests from the admin server
 \*=========================================================================================*/
-
+ob_start();
 require_once("./lib/config.php");
 // require_once("./lib/classes/db.class.php");
 require_once("./lib/classes/action-admin.class.php");
@@ -14,7 +14,7 @@ require_once("./lib/classes/output.class.php");
 // Initialise objects etc.
 	$r_data= '';
 	$mysqli = new mysqli($dbLogin['dbhost'], $dbLogin['dbusername'], $dbLogin['dbuserpass'], $dbLogin['dbname']);
-	$outObj = new Default_Model_Output_Class();
+	$outObj = new Default_Model_Output_Class($mysqli);
 	$dataObj = new Default_Model_Action_Class($mysqli,$outObj);	
 	
 // Grab the posted input stream and decode
@@ -27,9 +27,10 @@ require_once("./lib/classes/output.class.php");
 		$data=json_decode($dataMess[1],true);
 	
 // Check we know this command/action
-		$result = $mysqli->query(" SELECT * 
-											FROM command_routes AS cr 
-											WHERE cr.cr_action = '".$data['command']."'");
+		$result = $mysqli->query("
+			SELECT * 
+			FROM command_routes AS cr 
+			WHERE cr.cr_action = '".$data['command']."'");
 		$row = $result->fetch_object();
 		if ($result->num_rows) {
 //  && count($data['data'])>1	
@@ -50,9 +51,10 @@ require_once("./lib/classes/output.class.php");
 	}
 	
 // Log the command and response
-	if (isset($dataMess[1]) && strlen($dataMess[1])>10) {
-		$result = $mysqli->query("	INSERT INTO `api_log` (`al_message`, `al_reply`, `al_source_ip`,`al_timestamp`) 
-								VALUES ( '".$dataMess[1]."', '".serialize($m_data)."', '".serialize($r_data)."', '".date("Y-m-d H:i:s", time())."' )");
+	if (isset($dataMess[1])) {
+		$result = $mysqli->query("
+			INSERT INTO `api_log` (`al_message`, `al_reply`, `al_result_data`, `al_debug`,`al_timestamp`) 
+			VALUES ( '".$dataMess[1]."', '".serialize($m_data)."', '".serialize($r_data)."', '".ob_get_contents()."', '".date("Y-m-d H:i:s", time())."' )");
 	}
 // print_r ($m_data);
 

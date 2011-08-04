@@ -66,37 +66,42 @@ class Default_Model_Action_Class
 
 	public function startCheckProcess($apCommand) {
 
-		$result0 = $this->m_mysqli->query("	SELECT ap_process_id, ap_script, ap_status 
-															FROM api_process 
-															WHERE ap_status = 'Y' 
-															ORDER BY ap_timestamp DESC");
+		$result0 = $this->m_mysqli->query("
+			SELECT ap_process_id, ap_script, ap_status 
+			FROM api_process 
+			WHERE ap_status = 'Y' 
+			ORDER BY ap_timestamp DESC");
 		$j=0;
 		if ($result0->num_rows >=1) {
 			while(	$row0 = $result0->fetch_object()) {
 				if ($this->PsExists($row0->ap_process_id)) {
 					if ($j==0) {
-						$this->m_mysqli->query("	UPDATE `api_process` 
-															SET `ap_status`='Y', `ap_last_checked`='".date("Y-m-d H:i:s", time())."' 
-															WHERE `ap_process_id`=  '".$row0->ap_process_id."' ");
+						$this->m_mysqli->query("
+							UPDATE `api_process` 
+							SET `ap_status`='Y', `ap_last_checked`='".date("Y-m-d H:i:s", time())."' 
+							WHERE `ap_process_id`=  '".$row0->ap_process_id."' ");
 						$j=1;
 					} else {
 						$this->PsKill($row0->ap_process_id);
-						$this->m_mysqli->query("	UPDATE `api_process` 
-															SET `ap_status`='N', `ap_last_checked`='".date("Y-m-d H:i:s", time())."' 
-															WHERE `ap_process_id`=  '".$row0->ap_process_id."' ");
+						$this->m_mysqli->query("
+							UPDATE `api_process` 
+							SET `ap_status`='N', `ap_last_checked`='".date("Y-m-d H:i:s", time())."' 
+							WHERE `ap_process_id`=  '".$row0->ap_process_id."' ");
 					}
 				} else  {
-						$this->m_mysqli->query("	UPDATE `api_process` 
-															SET `ap_status`='N', `ap_last_checked`='".date("Y-m-d H:i:s", time())."' 
-															WHERE `ap_process_id`=  '".$row0->ap_process_id."' ");
+						$this->m_mysqli->query("
+							UPDATE `api_process` 
+							SET `ap_status`='N', `ap_last_checked`='".date("Y-m-d H:i:s", time())."' 
+							WHERE `ap_process_id`=  '".$row0->ap_process_id."' ");
 				}
 			}
 		}
 		if ($j==0) {
 				$processID=$this->PsExec($apCommand);
 				if ($processID==false) $status='N'; else $status='Y';  
-				$result = $this->m_mysqli->query("	INSERT INTO `api_process` (`ap_process_id`, `ap_script`, `ap_timestamp`, `ap_status`) 
-																VALUES ( '".$processID."',  '".$apCommand."', '".date("Y-m-d H:i:s", time())."', '".$status."' )");
+				$result = $this->m_mysqli->query("
+					INSERT INTO `api_process` (`ap_process_id`, `ap_script`, `ap_timestamp`, `ap_status`) 
+					VALUES ( '".$processID."',  '".$apCommand."', '".date("Y-m-d H:i:s", time())."', '".$status."' )");
 		}
 
 	}
@@ -110,25 +115,6 @@ class Default_Model_Action_Class
 	  
 		return array($code, $out);
 	 }
-	   
-/*	function transfer1($src, $dest, $srcfile, $destfile) {
-			
-		$connection = ssh2_connect($dest['server'], 22, array('hostkey'=>'ssh-rsa'));
-		
-		if (ssh2_auth_hostbased_file($connection, $dest['user'], $src['server'],
-									 '/usr/local/etc/hostkey_rsa.pub',
-									 '/usr/local/etc/hostkey_rsa', 'secret',
-									  $src['user'])) {
-		  echo "Public Key Hostbased Authentication Successful\n";
-		  ssh2_scp_send($connection, '/local/filename', '/remote/filename', 0644);
-
-		} else {
-		  die('Public Key Hostbased Authentication Failed');
-		}
-		
-		return array($code, $out);
-	}
-*/
 
 	public function pollMedia($row0, $fdata0) {
 
@@ -137,20 +123,22 @@ class Default_Model_Action_Class
 		if ($reply0['status']=='Y') {	
 			foreach($reply0['data'] as $k0 => $v0){ 
 				if ($v0['status']=='Y' || $v0['status']=='F') {
-					$result2 = $this->m_mysqli->query("	SELECT aw.wf_steps, cq_wf_step  
-																		FROM queue_commands AS cq, command_routes AS cr, api_workflows AS aw 
-																		WHERE cq.cq_command=cr.cr_action 
-																		AND cr.cr_index=aw.wf_cr_index 
-																		AND aw.wf_step='".$v0['step']."' 
-																		AND `cq_index`=  '".$v0['cqIndex']."' ");
+					$result2 = $this->m_mysqli->query("
+						SELECT aw.wf_steps, cq_wf_step  
+						FROM queue_commands AS cq, command_routes AS cr, api_workflows AS aw 
+						WHERE cq.cq_command=cr.cr_action 
+						AND cr.cr_index=aw.wf_cr_index 
+						AND aw.wf_step='".$v0['step']."' 
+						AND `cq_index`=  '".$v0['cqIndex']."' ");
 					if ($result2->num_rows) {
 						$row2=$result2->fetch_object();
 						if ( $v0['step'] == $row2->wf_steps || $v0['status']=='F') $status=$v0['status']; else $status='N';
 						if ($v0['step'] == $row2->cq_wf_step && $v0['step'] != $row2->wf_steps && $v0['status']=='Y') $step= $v0['step']+1; else $step= $v0['step']; 
  
-						$result3 = $this->m_mysqli->query("	UPDATE `queue_commands` 
-																			SET `cq_result`='".serialize($v0)."', `cq_status`='".$status."', `cq_wf_step`= '".$step."', `cq_update`='".date("Y-m-d H:i:s", time())."' 
-																			WHERE `cq_index`=  '".$v0['cqIndex']."' ");
+						$result3 = $this->m_mysqli->query("
+							UPDATE `queue_commands` 
+							SET `cq_result`='".serialize($v0)."', `cq_status`='".$status."', `cq_wf_step`= '".$step."', `cq_update`='".date("Y-m-d H:i:s", time())."' 
+							WHERE `cq_index`=  '".$v0['cqIndex']."' ");
 						$mqToCheck0[$v0['mqIndex']]=$v0['mqIndex'];
 					}
 				}
@@ -170,11 +158,12 @@ class Default_Model_Action_Class
 		if ($reply1['status']=='Y') {	
 			foreach($reply1['data'] as $k1 => $v1){ 
 				if ($v1['status']=='Y' || $v1['status']=='F') {
-					$result4 = $this->m_mysqli->query("	SELECT aw.wf_steps, `cq_mq_index`, `cq_command`,  `cq_filename`, `cq_data`, `cq_result`, `cq_time`, `cq_update`, `cq_wf_step`, `cq_status` 
-																		FROM queue_commands AS cq, command_routes AS cr, api_workflows AS aw 
-																		WHERE cq.cq_command=cr.cr_action 
-																		AND cr.cr_index=aw.wf_cr_index and aw.wf_step='".$v1['step']."' 
-																		AND `cq_index`=  '".$v1['cqIndex']."' ");
+					$result4 = $this->m_mysqli->query("
+						SELECT aw.wf_steps, `cq_mq_index`, `cq_command`,  `cq_filename`, `cq_data`, `cq_result`, `cq_time`, `cq_update`, `cq_wf_step`, `cq_status` 
+						FROM queue_commands AS cq, command_routes AS cr, api_workflows AS aw 
+						WHERE cq.cq_command=cr.cr_action 
+						AND cr.cr_index=aw.wf_cr_index and aw.wf_step='".$v1['step']."' 
+						AND `cq_index`=  '".$v1['cqIndex']."' ");
 					if ($result4->num_rows) {
 						$row4=$result4->fetch_object();
 						if ($v1['step'] == $row4->cq_wf_step ) $step= $v1['step']+1; else $step = $v1['step']; 
@@ -184,16 +173,19 @@ class Default_Model_Action_Class
 						} else {
 							$status='N'; 
 						}
-						if ( $row4->cq_filename != $v1['data']['filename']){
+						if ( $row4->cq_filename != $v1['data']['source_filename']){
 							$step= $v1['step']+1;
 							$mData = unserialize($row4->cq_data);
-							$mData['filename'] = $v1['data']['filename']; 
-							$this->m_mysqli->query("	INSERT INTO `queue_commands` ( `cq_mq_index`, `cq_command`,  `cq_filename`, `cq_data`, `cq_result`, `cq_time`, `cq_update`, `cq_wf_step`, `cq_status`) 
-																VALUES	('".$row4->cq_mq_index."','".$row4->cq_command."','".$v1['data']['filename']."','".serialize($mData)."','".serialize($v1)."','".$row4->cq_time."','".date("Y-m-d H:i:s", time())."','".$step."', 'N')");
+							$mData['source_filename'] = $v1['data']['source_filename']; 
+							$mData['destination_filename'] = $v1['data']['destination_filename']; 
+							$this->m_mysqli->query("
+								INSERT INTO `queue_commands` ( `cq_mq_index`, `cq_command`,  `cq_filename`, `cq_data`, `cq_result`, `cq_time`, `cq_update`, `cq_wf_step`, `cq_status`) 
+								VALUES	('".$row4->cq_mq_index."','".$row4->cq_command."','".$v1['data']['source_filename']."','".serialize($mData)."','".serialize($v1)."','".$row4->cq_time."','".date("Y-m-d H:i:s", time())."','".$step."', 'N')");
 						}else{ 
-							$result5 = $this->m_mysqli->query("	UPDATE `queue_commands` 
-																				SET `cq_result`='".serialize($v1)."', `cq_status`='".$status."', `cq_wf_step`= '".$step."', `cq_update`='".date("Y-m-d H:i:s", time())."' 
-																				WHERE `cq_index`=  '".$v1['cqIndex']."' ");
+							$result5 = $this->m_mysqli->query("
+								UPDATE `queue_commands` 
+								SET `cq_result`='".serialize($v1)."', `cq_status`='".$status."', `cq_wf_step`= '".$step."', `cq_update`='".date("Y-m-d H:i:s", time())."' 
+								WHERE `cq_index`=  '".$v1['cqIndex']."' ");
 						}
 						$mqToCheck1[$v1['mqIndex']]=$v1['mqIndex'];
 					}
@@ -217,10 +209,11 @@ class Default_Model_Action_Class
 		$data=$replyMess;
 
 // Check we know this command/action
-		$result = $this->m_mysqli->query("	SELECT * 
-														FROM command_routes AS cr 
-														WHERE cr.cr_action = '".$data['command']."' 
-														AND cr.cr_source = 'vle-api' ");
+		$result = $this->m_mysqli->query("
+			SELECT * 
+			FROM command_routes AS cr 
+			WHERE cr.cr_action = '".$data['command']."' 
+			AND cr.cr_source = 'vle-api' ");
 		$row = $result->fetch_object();
 		
 		if ($result->num_rows) {
@@ -236,12 +229,27 @@ class Default_Model_Action_Class
 
 	}
 
+	function dataCheck($d) {
+		$check=true;
+		if (is_array($d)) {
+			if ( isset($d['source_path']) && ($d['source_path']=='\/' || $d['source_path']=='')) $check=false;
+			if ( isset($d['destination_path']) && ($d['destination_path']=='\/' || $d['destination_path']=='')) $check=false;
+			if ( isset($d['target_path'])) $check=false;
+			if ( isset($d['filename']) && ($d['filename']=='')) $check=false;
+			if ($check==true) return true; else return false;
+		} else {
+			return false;
+		}
+	}
+
+
 	public function queueAction($mArr,$mNum,$action,$timestamp){
 		
 		$retData= array( 'command'=>$action, 'number'=>'', 'data'=>'Queued admin-api!', 'status'=>'', 'timestamp'=>time()) ;
 		$dataArr='';	
-		$result = $this->m_mysqli->query("	INSERT INTO `queue_messages` (`mq_command`, `mq_number`, `mq_time_start`, `mq_status`) 
-														VALUES ( '".$action."',  '".$mNum."', '".date("Y-m-d H:i:s", $timestamp)."', 'N' )");
+		$result = $this->m_mysqli->query("	
+			INSERT INTO `queue_messages` (`mq_command`, `mq_number`, `mq_time_start`, `mq_status`) 
+			VALUES ( '".$action."',  '".$mNum."', '".date("Y-m-d H:i:s", $timestamp)."', 'N' )");
 		$mess_id = $this->m_mysqli->insert_id;
 		$sqlCommands = "INSERT INTO `queue_commands` (`cq_command`, `cq_filename`, `cq_mq_index`, `cq_data`, `cq_time`, `cq_update`, `cq_status`) VALUES ";
 		$i=0;
@@ -249,7 +257,7 @@ class Default_Model_Action_Class
 // Build a multiple row insert using the data array
 		while (isset($mArr[$i])){
 			if($i!=0) $sqlCommands.= ", ";		
-			$sqlCommands.= "('".$action."', '".$mArr[$i]['filename']."', '".$mess_id."','".serialize($mArr[$i])."','".date("Y-m-d H:i:s", $timestamp)."', '', 'N')"; 
+			$sqlCommands.= "('".$action."', '".$mArr[$i]['source_filename']."', '".$mess_id."','".serialize($mArr[$i])."','".date("Y-m-d H:i:s", $timestamp)."', '', 'N')"; 
 			$i++;
 		}
 
@@ -262,14 +270,10 @@ class Default_Model_Action_Class
 
 	public function doNextAction($mqIndex,$cqCommand){
 		
-		$result4 = $this->m_mysqli->query("	SELECT * 
-												FROM queue_commands AS cq, command_routes AS cr,api_workflows AS wf 
-												WHERE cq.cq_command=cr.cr_action 
-												AND wf.wf_cr_index=cr.cr_index 
-												AND cq.cq_wf_step=wf.wf_step 
-												AND  cq.cq_status = 'N' 
-												AND cq.cq_mq_index='".$mqIndex."' 
-												AND wf.wf_route_type IN (".$cqCommand.") ");
+		$result4 = $this->m_mysqli->query("
+			SELECT * 
+			FROM queue_commands AS cq, command_routes AS cr,api_workflows AS wf 
+			WHERE cq.cq_command=cr.cr_action AND wf.wf_cr_index=cr.cr_index AND cq.cq_wf_step=wf.wf_step AND  cq.cq_status = 'N' AND cq.cq_mq_index='".$mqIndex."' AND wf.wf_route_type IN (".$cqCommand.") ");
 		if ($result4->num_rows >= 1) $this->processActions($result4);
 		
 		return array('mqIndex'=>$mqIndex, 'command'=>$cqCommand);
@@ -292,9 +296,10 @@ class Default_Model_Action_Class
 						if ($row->wf_steps > $row->wf_step) $step=$row->wf_step +1; else $step=$row->wf_step;
 						if ($row->wf_steps == $row->wf_step) $status='Y'; else  $status='N';
 					}
-					$result = $this->m_mysqli->query("	UPDATE `queue_commands` 
-														SET `cq_result`='".serialize($retData)."', `cq_status`='".$status."', `cq_wf_step`='".$step."', `cq_update`='".date("Y-m-d H:i:s", time())."' 
-														WHERE `cq_index`=  '".$row->cq_index."' ");
+					$result = $this->m_mysqli->query("	
+						UPDATE `queue_commands` 
+						SET `cq_result`='".serialize($retData)."', `cq_status`='".$status."', `cq_wf_step`='".$step."', `cq_update`='".date("Y-m-d H:i:s", time())."' 
+						WHERE `cq_index`=  '".$row->cq_index."' ");
 //					$error .= "ProcessActions - ".$this->m_mysqli->info;
 
 			}
@@ -314,10 +319,10 @@ class Default_Model_Action_Class
 		
 		global $source, $destination; 
 
-		$retData= array('cqIndex'=>$cqIndex, 'filename'=> $mArr['filename'], 'source_path'=> $mArr['source_path'], 'destination_path'=> $mArr['destination_path'], 'number'=> 0, 'result'=> 'N') ;
+		$retData= array('cqIndex'=>$cqIndex, 'source_path'=> $mArr['source_path'], 'source_filename'=> $mArr['source_filename'], 'number'=> 0, 'result'=> 'N') ;
 
-		$outFile = urlencode($mArr['destination_path'].$mArr['filename']);
- 		$retData['scp'] = $this->transfer($source['admin'].$mArr['source_path'].$mArr['filename'] , $destination['media'].$cqIndex."_".$outFile);
+		$outFile = urlencode($mArr['source_path'].$mArr['source_filename']);
+ 		$retData['scp'] = $this->transfer($source['admin'].$mArr['source_path'].$mArr['source_filename'] , $destination['media'].$cqIndex."_".$outFile);
 		if ($retData['scp'][0]==0) $retData['result']='Y'; else $retData['result']='F'; 
 
 		return $retData;
@@ -327,13 +332,10 @@ class Default_Model_Action_Class
 		
 		$retData= array('cqIndex'=>$cqIndex, 'number'=> $mNum, 'result'=> 'N') ;
 		$postRetData['status']='N';
- 		$result5 = $this->m_mysqli->query("	SELECT * 
-															FROM queue_commands AS cq, api_workflows AS wf, command_routes AS cr, api_destinations AS ad 
-															WHERE cq.cq_command=cr.cr_action 
-															AND cr.cr_index=wf.wf_cr_index 
-															AND wf.wf_ad_index=ad.ad_index 
-															AND wf.wf_step = 1 + cq.cq_wf_step 
-															AND cq.cq_index='".$cqIndex."'");
+ 		$result5 = $this->m_mysqli->query("
+			SELECT * 
+			FROM queue_commands AS cq, api_workflows AS wf, command_routes AS cr, api_destinations AS ad 
+			WHERE cq.cq_command=cr.cr_action AND cr.cr_index=wf.wf_cr_index AND wf.wf_ad_index=ad.ad_index AND wf.wf_step = 1 + cq.cq_wf_step AND cq.cq_index='".$cqIndex."'");
 		$row5 = $result5->fetch_object();
 
 		$postRetData=$this->m_outObj->message_send_next_command($row5->wf_command,  $row5->ad_url, $cqIndex,  $row5->cq_mq_index, $row5->wf_step, $mArr, $mNum);
@@ -353,17 +355,17 @@ class Default_Model_Action_Class
 		
 		$result="Checking - ".$mqIndex;
 		
-		$result6 = $this->m_mysqli->query("	SELECT count(cq.cq_index) AS num, mq.mq_number, ad.ad_url, cr.cr_callback 
-															FROM queue_messages AS mq, queue_commands cq, command_routes AS cr, api_destinations AS ad 
-															WHERE mq.mq_index=cq.cq_mq_index 
-															AND cr.cr_action=mq.mq_command 
-															AND cr.cr_source=ad.ad_name 
-															AND mq.mq_index = '".$mqIndex."' 
-															AND cq.cq_status IN ('Y','F')");
+		$result6 = $this->m_mysqli->query("
+			SELECT count(cq.cq_index) AS num, mq.mq_number, ad.ad_url, cr.cr_callback 
+			FROM queue_messages AS mq, queue_commands cq, command_routes AS cr, api_destinations AS ad 
+			WHERE mq.mq_index=cq.cq_mq_index AND cr.cr_action=mq.mq_command AND cr.cr_source=ad.ad_name AND mq.mq_index = '".$mqIndex."' AND cq.cq_status IN ('Y','F')");
 		if ($result6->num_rows!=0) {
 			$row6 = $result6->fetch_object();
 			if ($row6->num == $row6->mq_number) {
-				$result3 = $this->m_mysqli->query("SELECT * FROM queue_messages AS mq, queue_commands cq WHERE mq.mq_index=cq.cq_mq_index AND mq.mq_index = '".$mqIndex."'");
+				$result3 = $this->m_mysqli->query("
+					SELECT * 
+					FROM queue_messages AS mq, queue_commands cq 
+					WHERE mq.mq_index=cq.cq_mq_index AND mq.mq_index = '".$mqIndex."'");
 				$i=0;
 				$j=0;
 				while(	$row3 = $result3->fetch_object()){
@@ -372,8 +374,10 @@ class Default_Model_Action_Class
 					if ($row3->cq_status=='F') $j++;
 					$i++;
 				}
-				$result2 = $this->m_mysqli->query("UPDATE `queue_messages` SET `mq_time_complete` = '".date("Y-m-d H:i:s", time())."' ,`mq_status`= 'R', `mq_failed`= ".$j.", `mq_result`='".serialize($r_data)."' where mq_index='".$mqIndex."' ");
-
+				$result2 = $this->m_mysqli->query("
+					UPDATE `queue_messages` 
+					SET `mq_time_complete` = '".date("Y-m-d H:i:s", time())."' ,`mq_status`= 'R', `mq_failed`= ".$j.", `mq_result`='".serialize($r_data)."' 
+					WHERE mq_index='".$mqIndex."' ");
 			}
 		}
 		return $result;
@@ -382,12 +386,10 @@ class Default_Model_Action_Class
 	
 	public function doCallback(){
 		
-		$result2 = $this->m_mysqli->query( "	SELECT mq.mq_index, mq.mq_status, mq.mq_number, mq.mq_failed, mq.mq_result, mq_retry_count, ad.ad_url, cr.cr_callback 
-															FROM queue_messages AS mq, command_routes AS cr, api_destinations AS ad 
-															WHERE cr.cr_action=mq.mq_command 
-															AND cr.cr_source=ad.ad_name 
-															AND mq.mq_status IN('S','R') 
-															ORDER BY mq.mq_time_start");
+		$result2 = $this->m_mysqli->query( "
+			SELECT mq.mq_index, mq.mq_status, mq.mq_number, mq.mq_failed, mq.mq_result, mq_retry_count, ad.ad_url, cr.cr_callback 
+			FROM queue_messages AS mq, command_routes AS cr, api_destinations AS ad 
+			WHERE cr.cr_action=mq.mq_command AND cr.cr_source=ad.ad_name AND mq.mq_status IN('S','R') ORDER BY mq.mq_time_start");
 		if (isset($result2->num_rows)) {
 	
 			while(	$row2 = $result2->fetch_object()) { 
@@ -397,28 +399,32 @@ class Default_Model_Action_Class
 
 // $result3['status']="ACK"; // Fix the result until the admin can return a useful response.
 				if ($result3['status'] == "NACK" ) {
-					$this->m_mysqli->query("	UPDATE `queue_messages` 
-														SET `mq_status`= 'F' 
-														WHERE mq_index='".$row2->mq_index."' ");
-					mail ("i.newton@open.ac.uk", "Admin API callback error", "Sent:\n\n".print_r($mqResArr)."\n\nReply:\n\n".print_r($result3),"From:i.newton@open.ac.uk");
+					$this->m_mysqli->query("
+						UPDATE `queue_messages` 
+						SET `mq_status`= 'F' 
+						WHERE mq_index='".$row2->mq_index."' ");
+//					mail ("i.newton@open.ac.uk", "Admin API callback error", "Sent:\n\n".print_r($mqResArr)."\n\nReply:\n\n".print_r($result3),"From:i.newton@open.ac.uk");
 				}  else  if ($result3['status'] == "ACK"){
-					$this->m_mysqli->query("	UPDATE `queue_messages` 
-														SET `mq_status`= 'C' 
-														WHERE mq_index='".$row2->mq_index."' ");					
-					$this->m_mysqli->query("	UPDATE `queue_commands` 
-														SET `cq_status`= 'C' 
-														WHERE cq_mq_index='".$row2->mq_index."' 
-														AND `cq_status`='Y' ");					
+					$this->m_mysqli->query("
+						UPDATE `queue_messages` 
+						SET `mq_status`= 'C' 
+						WHERE mq_index='".$row2->mq_index."' ");					
+					$this->m_mysqli->query("
+						UPDATE `queue_commands` 
+						SET `cq_status`= 'C' 
+						WHERE cq_mq_index='".$row2->mq_index."' AND `cq_status`='Y' ");					
 				} else if ($row2->mq_retry_count<1) {
-					$this->m_mysqli->query("	UPDATE `queue_messages` 
-														SET `mq_status`= 'R', `mq_retry_count`= mq_retry_count + 1 
-														WHERE mq_index='".$row2->mq_index."' ");
-					mail ("i.newton@open.ac.uk", "Admin API callback warning resending ->", "Sent:\n\n".print_r($mqResArr)."\n\nReply:\n\n".print_r($result3),"From:i.newton@open.ac.uk");
+					$this->m_mysqli->query("
+						UPDATE `queue_messages` 
+						SET `mq_status`= 'R', `mq_retry_count`= mq_retry_count + 1 
+						WHERE mq_index='".$row2->mq_index."' ");
+//					mail ("i.newton@open.ac.uk", "Admin API callback warning resending ->", "Sent:\n\n".print_r($mqResArr)."\n\nReply:\n\n".print_r($result3),"From:i.newton@open.ac.uk");
 				} else {
-					$this->m_mysqli->query("	UPDATE `queue_messages` 
-														SET `mq_status`= 'T' 
-														WHERE mq_index='".$row2->mq_index."' ");
-					mail ("i.newton@open.ac.uk", "Admin API callback error connection timed out!", "Sent:\n\n".print_r($mqResArr)."\n\nReply:\n\nNone","From:i.newton@open.ac.uk");
+					$this->m_mysqli->query("
+						UPDATE `queue_messages` 
+						SET `mq_status`= 'T' 
+						WHERE mq_index='".$row2->mq_index."' ");
+//					mail ("i.newton@open.ac.uk", "Admin API callback error connection timed out!", "Sent:\n\n".print_r($mqResArr)."\n\nReply:\n\nNone","From:i.newton@open.ac.uk");
 				}			
 			}
 		}

@@ -8,10 +8,10 @@
 
 // Initialise objects
 	$mysqli = new mysqli($dbLogin['dbhost'], $dbLogin['dbusername'], $dbLogin['dbuserpass'], $dbLogin['dbname']);
-	$outObj = new Default_Model_Output_Class();
+	$outObj = new Default_Model_Output_Class($mysqli);
 	$dataObj = new Default_Model_Action_Class($mysqli,$outObj);
 	
-	$apCommand="curl -d \"number=10&time1\" http://podcast-api-dev.open.ac.uk/poll.php";	
+	$apCommand="curl -d \"number=5&time=2\" http://podcast-api-dev.open.ac.uk/poll.php";	
 
 // Check and/or start 2s polling process
 
@@ -24,7 +24,7 @@
 							AND `ap_status`='N' ");
 
 	$mysqli->query("	DELETE FROM `api_log` 
-							WHERE al_timestamp < (now() - interval 30 minute)");
+							WHERE al_timestamp < (now() - interval 12 hour)");
 
 // - Proccessing of  commands part -----------------------------------------------------------------------------------------
 
