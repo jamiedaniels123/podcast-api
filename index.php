@@ -7,7 +7,6 @@
 \*=========================================================================================*/
 ob_start();
 require_once("./lib/config.php");
-// require_once("./lib/classes/db.class.php");
 require_once("./lib/classes/action-admin.class.php");
 require_once("./lib/classes/output.class.php");
 
@@ -28,15 +27,15 @@ require_once("./lib/classes/output.class.php");
 	
 // Check we know this command/action
 		$result = $mysqli->query("
-			SELECT * 
-			FROM command_routes AS cr 
-			WHERE cr.cr_action = '".$data['command']."'");
-		$row = $result->fetch_object();
+			SELECT  dc_field1, dc_field2, dc_field3, dc_field4, dc_field5, dc_field6
+			FROM command_routes AS cr, api_datacheck AS dc 
+			WHERE dc.dc_index=cr.cr_datacheck AND cr.cr_action = '".$data['command']."'");
+		$row = $result->fetch_array();
 		if ($result->num_rows) {
 //  && count($data['data'])>1	
 // Put command message on message queue and data for each request on the command queue
 
-			$m_data = $dataObj->queueAction($data['data'],$data['number'],$data['command'],$data['timestamp']);
+			$m_data = $dataObj->queueAction($data['data'],$data['number'],$data['command'],$data['timestamp'],$row);
 	
 // Do anything now which needs to be done directly	
 			$cqCommand="'direct'";
@@ -51,10 +50,9 @@ require_once("./lib/classes/output.class.php");
 	}
 	
 // Log the command and response
-	if (isset($dataMess[1])) {
-		$result = $mysqli->query("
-			INSERT INTO `api_log` (`al_message`, `al_reply`, `al_result_data`, `al_debug`,`al_timestamp`) 
-			VALUES ( '".$dataMess[1]."', '".serialize($m_data)."', '".serialize($r_data)."', '".ob_get_contents()."', '".date("Y-m-d H:i:s", time())."' )");
+	if (is_array($data)) {
+		$result = $mysqli->query(" INSERT INTO `api_log` (`al_message`, `al_reply`, `al_result_data`, `al_debug`,`al_timestamp`) 
+			VALUES ( '".serialize($data)."', '".serialize($m_data)."', '".serialize($r_data)."', '', '".date("Y-m-d H:i:s", time())."' )");
 	}
 // print_r ($m_data);
 

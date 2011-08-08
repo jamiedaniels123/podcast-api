@@ -45,9 +45,9 @@ class Default_Model_Output_Class
 		$postData=array('mess'=>json_encode($postData));
 		$response=$this->rest_helper($callbackUrl, $postData, 'POST', 'json');
 
-		if (isset($response)) {
+		if (isset($command)) {
 			$result = $this->m_mysqli->query(" INSERT INTO `api_log` (`al_message`, `al_reply`, `al_dest`, `al_result_data`, `al_timestamp`) 
-															VALUES ( '".$messData."', '".serialize($response)."', '".$callbackUrl."',  '".ob_get_contents()."', '".date("Y-m-d H:i:s", time())."' )");
+															VALUES ( '".$messData."', '".serialize($response)."', '".$callbackUrl."',  '', '".date("Y-m-d H:i:s", time())."' )");
 		}
 		
 		return $response;
