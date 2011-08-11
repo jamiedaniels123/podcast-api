@@ -42,7 +42,7 @@ require_once("./lib/classes/output.class.php");
 			$r_data = $dataObj->doNextAction($m_data['mqIndex'], $cqCommand);
 	
 		}else{
-			$m_data = array('status'=>'NACK', 'data'=>'Command not known on admin-api or data payload supplied!', 'sqlQuery'=>$sqlQuery, 'timestamp'=>time());
+			$m_data = array('status'=>'NACK', 'data'=>'Command not known on admin-api or data payload supplied!', 'timestamp'=>time());
 		}
 	
 	}else{
@@ -50,7 +50,7 @@ require_once("./lib/classes/output.class.php");
 	}
 	
 // Log the command and response
-	if (is_array($data)) {
+	if (isset($data) && is_array($data)) {
 		$result = $mysqli->query(" INSERT INTO `api_log` (`al_message`, `al_reply`, `al_result_data`, `al_debug`,`al_timestamp`) 
 			VALUES ( '".serialize($data)."', '".serialize($m_data)."', '".serialize($r_data)."', '', '".date("Y-m-d H:i:s", time())."' )");
 	}

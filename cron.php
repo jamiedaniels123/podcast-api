@@ -44,6 +44,7 @@
 	// Process the outstanding commands for each message
 			$cqCommand="'queue','direct'";
 			while(	$row1 = $result1->fetch_object()) { 
+//			$debug[] = $row1;
 				if ($row1->mq_status=='N') $m_data = $dataObj->doNextAction($row1->mq_index, $cqCommand);	
 				$reply = $dataObj->doMessageCompletion($row1->mq_index);
 			}

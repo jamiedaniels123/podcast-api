@@ -30,7 +30,7 @@ class Default_Model_Output_Class
 //		if (isset($command) && $command!='poll-encoder') {
 			$result = $this->m_mysqli->query("
 				INSERT INTO `api_log` (`al_message`, `al_reply`, `al_dest`, `al_timestamp`) 
-				VALUES ( '".$messData."', '".serialize($response)."', '".$apiUrl."', '".date("Y-m-d H:i:s", time())."' )");
+				VALUES ( '".$messData."', '".json_encode($response)."', '".$apiUrl."', '".date("Y-m-d H:i:s", time())."' )");
 		}
 		
 		return $response;
@@ -45,10 +45,8 @@ class Default_Model_Output_Class
 		$postData=array('mess'=>json_encode($postData));
 		$response=$this->rest_helper($callbackUrl, $postData, 'POST', 'json');
 
-		if (isset($command)) {
-			$result = $this->m_mysqli->query(" INSERT INTO `api_log` (`al_message`, `al_reply`, `al_dest`, `al_result_data`, `al_timestamp`) 
-															VALUES ( '".$messData."', '".serialize($response)."', '".$callbackUrl."',  '', '".date("Y-m-d H:i:s", time())."' )");
-		}
+		$result = $this->m_mysqli->query(" INSERT INTO `api_log` (`al_message`, `al_reply`, `al_dest`, `al_result_data`, `al_timestamp`) 
+															VALUES ( '".$messData."', '".json_encode($response)."', '".$callbackUrl."',  '', '".date("Y-m-d H:i:s", time())."' )");
 		
 		return $response;
 	} 
@@ -65,10 +63,8 @@ class Default_Model_Output_Class
 		$postData=array('mess'=>json_encode($postData));
 		$response=$this->rest_helper($callbackUrl, $postData, 'POST', 'json');
 
-		if (isset($response)) {
-			$result = $this->m_mysqli->query(" INSERT INTO `api_log` (`al_message`, `al_reply`, `al_dest`, `al_result_data`, `al_timestamp`) 
-															VALUES ( '".$messData."', '".serialize($response)."', '".$callbackUrl."',  '".ob_get_contents()."', '".date("Y-m-d H:i:s", time())."' )");
-		}
+		$result = $this->m_mysqli->query(" INSERT INTO `api_log` (`al_message`, `al_reply`, `al_dest`, `al_result_data`, `al_timestamp`) 
+															VALUES ( '".$messData."', '".json_encode($response)."', '".$callbackUrl."',  '".ob_get_contents()."', '".date("Y-m-d H:i:s", time())."' )");
 		
 		return $response;
 	} 
@@ -85,7 +81,7 @@ class Default_Model_Output_Class
 		if ((isset($command) && $command!='') || (isset($response['status']) && $response['status'] !='')) {
 			$result = $this->m_mysqli->query("
 				INSERT INTO `api_log` (`al_message`, `al_reply`, `al_dest`, `al_timestamp`) 
-				VALUES ( '".$messData."', '".serialize($response)."', '".$mediaUrl."', '".date("Y-m-d H:i:s", time())."' )");
+				VALUES ( '".$messData."', '".json_encode($response)."', '".$mediaUrl."', '".date("Y-m-d H:i:s", time())."' )");
 		}
 
 		return $response;
