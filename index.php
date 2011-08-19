@@ -40,13 +40,13 @@ require_once("./lib/classes/output.class.php");
 			$cqCommand="'direct'";
 			$r_data = $dataObj->doNextAction($m_data['mqIndex'], $cqCommand);
 	
-		}else{
-			$m_data = array('status'=>'NACK', 'data'=>'Command not known on admin-api or data payload supplied!', 'timestamp'=>time());
-		}
-	
 	}else{
-		$m_data = array('status'=>'NACK', 'data'=>'No request values set!', 'timestamp'=>time());
+		$m_data = array('status'=>'NACK', 'data'=>'Command not known! - '.$apiName.'-'.$version, 'timestamp'=>time());
 	}
+
+}else{
+	$m_data = array('status'=>'NACK', 'data'=>'No request values set! - '.$apiName.'-'.$version, 'timestamp'=>time());
+}
 	
 // Log the command and response
 	if (isset($data)) {
