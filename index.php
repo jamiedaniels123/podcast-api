@@ -5,7 +5,6 @@
 	#	Test version  
 	#	Admin-api input controller to accept post requests from the admin server
 \*=========================================================================================*/
-ob_start();
 require_once("./lib/config.php");
 require_once("./lib/classes/action-admin.class.php");
 require_once("./lib/classes/output.class.php");
@@ -41,18 +40,18 @@ require_once("./lib/classes/output.class.php");
 			$cqCommand="'direct'";
 			$r_data = $dataObj->doNextAction($m_data['mqIndex'], $cqCommand);
 	
-		}else{
-			$m_data = array('status'=>'NACK', 'data'=>'Command not known on admin-api or data payload supplied!', 'timestamp'=>time());
-		}
-	
 	}else{
-		$m_data = array('status'=>'NACK', 'data'=>'No request values set!', 'timestamp'=>time());
+		$m_data = array('status'=>'NACK', 'data'=>'Command not known! - '.$apiName.'-'.$version, 'timestamp'=>time());
 	}
+
+}else{
+	$m_data = array('status'=>'NACK', 'data'=>'No request values set! - '.$apiName.'-'.$version, 'timestamp'=>time());
+}
 	
 // Log the command and response
 	if (isset($data)) {
 		$result = $mysqli->query(" INSERT INTO `api_log` (`al_message`, `al_reply`, `al_result_data`, `al_debug`,`al_timestamp`) 
-			VALUES ( '".json_encode($data)."', '".json_encode($m_data)."', '".json_encode($r_data)."', '', '".date("Y-m-d H:i:s", time())."' )");
+			VALUES ( '".json_encode($data)."', '".json_encode($m_data)."', '', '', '".date("Y-m-d H:i:s", time())."' )");
 	}
 // print_r ($m_data);
 
