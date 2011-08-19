@@ -182,18 +182,18 @@ class Default_Model_Action_Class
 						} else {
 							$status='N'; 
 						}
-						if ( $row4->cq_filename != $v1['data']['source_filename']){
+						if ( $row4->cq_filename != $v1['source_filename']){
 							$step= $v1['step']+1;
 							$mData = json_decode($row4->cq_data,true);
-							$mData['source_filename'] = $v1['data']['source_filename']; 
-							$mData['destination_filename'] = $v1['data']['destination_filename']; 
-							$mData['destination_path'] = $v1['data']['destination_path']; 
-							$mData['original_filename'] = $v1['data']['original_filename'];
-							$mData['flavour'] = $v1['data']['flavour'];
-							$mData['duration'] = $v1['data']['duration'];
+							$mData['source_filename'] = $v1['source_filename']; 
+							$mData['destination_filename'] = $v1['destination_filename']; 
+							$mData['destination_path'] = $v1['destination_path']; 
+							$mData['original_filename'] = $v1['original_filename'];
+							$mData['flavour'] = $v1['flavour'];
+							$mData['duration'] = $v1['duration'];
 							$this->m_mysqli->query("
 								INSERT INTO `queue_commands` ( `cq_mq_index`, `cq_command`,  `cq_filename`, `cq_data`, `cq_result`, `cq_time`, `cq_update`, `cq_wf_step`, `cq_status`) 
-								VALUES	('".$row4->cq_mq_index."','".$row4->cq_command."','".$v1['data']['source_filename']."','".json_encode($mData)."','".json_encode($v1)."','".$row4->cq_time."','".date("Y-m-d H:i:s", time())."','".$step."', 'N')");
+								VALUES	('".$row4->cq_mq_index."','".$row4->cq_command."','".$v1['source_filename']."','".json_encode($mData)."','".json_encode($v1)."','".$row4->cq_time."','".date("Y-m-d H:i:s", time())."','".$step."', 'N')");
 							$this->m_mysqli->query("
 								UPDATE `queue_messages` 
 								SET `mq_number`= mq_number + 1 
