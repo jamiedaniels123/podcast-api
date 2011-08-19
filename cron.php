@@ -46,7 +46,7 @@
 			while(	$row1 = $result1->fetch_object()) { 
 //			$debug[] = $row1;
 				if ($row1->mq_status=='N') $m_data = $dataObj->doNextAction($row1->mq_index, $cqCommand);	
-				$reply = $dataObj->doMessageCompletion($row1->mq_index);
+				$reply[] = $dataObj->doMessageCompletion($row1->mq_index);
 			}
 		}
 	
@@ -61,10 +61,10 @@
 // Clean up old completed commands
 
 	$mysqli->query("	DELETE FROM `queue_commands` 
-							WHERE cq_time < (now() - interval 24 hour) 
+							WHERE cq_time < (now() - interval 12 hour) 
 							AND `cq_status`='C' ");
 	$mysqli->query("	DELETE FROM `queue_messages` 
-							WHERE mq_time_start < (now() - interval 24 hour) 
+							WHERE mq_time_start < (now() - interval 12 hour) 
 							AND `mq_status`='C' ");
 
 ?>

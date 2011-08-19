@@ -5,7 +5,6 @@
 	#	Test version  
 	#	Admin-api input controller to accept post requests from the admin server
 \*=========================================================================================*/
-ob_start();
 require_once("./lib/config.php");
 require_once("./lib/classes/action-admin.class.php");
 require_once("./lib/classes/output.class.php");
@@ -52,7 +51,7 @@ require_once("./lib/classes/output.class.php");
 // Log the command and response
 	if (isset($data)) {
 		$result = $mysqli->query(" INSERT INTO `api_log` (`al_message`, `al_reply`, `al_result_data`, `al_debug`,`al_timestamp`) 
-			VALUES ( '".json_encode($data)."', '".json_encode($m_data)."', '".json_encode($r_data)."', '', '".date("Y-m-d H:i:s", time())."' )");
+			VALUES ( '".json_encode($data)."', '".json_encode($m_data)."', '', '', '".date("Y-m-d H:i:s", time())."' )");
 	}
 // print_r ($m_data);
 

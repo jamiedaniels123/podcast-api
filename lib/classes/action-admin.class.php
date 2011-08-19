@@ -7,7 +7,7 @@
 \*=========================================================================================*/
 
 class Default_Model_Action_Class 
-// extends Default_Model_DB_Class
+
   {
     protected $m_mysqli,$m_outObj;
 	
@@ -116,9 +116,13 @@ class Default_Model_Action_Class
 		return array($code, $out);
 	 }
 
-	public function pollMedia($row0, $fdata0) {
+	public function pollMedia() {
 
-		$reply0=$this->m_outObj->message_send('poll-media', $row0->ad_url, $fdata0,1);
+		global $source,$destination;
+
+		$fdata0 = array('command'=>'poll_media');
+
+		$reply0=$this->m_outObj->message_send('poll-media', $destination['media-api'], $fdata0,1);
 		
 		if ($reply0['status']=='Y') {	
 			foreach($reply0['data'] as $k0 => $v0){ 
@@ -152,9 +156,14 @@ class Default_Model_Action_Class
 
 	}
 
-	public function pollEncoder($row1, $fdata1) {
+	public function pollEncoder() {
 
-		$reply1=$this->m_outObj->message_send('poll-encoder', $row1->ad_url, $fdata1,1);
+		global $source,$destination;
+
+		$fdata1 = array('command'=>'poll_encoder');
+		
+		$reply1=$this->m_outObj->message_send('poll-encoder', $destination['encoder-api'], $fdata1,1);
+		
 		if ($reply1['status']=='Y') {	
 			foreach($reply1['data'] as $k1 => $v1){ 
 				if ($v1['status']=='Y' || $v1['status']=='F') {
@@ -208,9 +217,13 @@ class Default_Model_Action_Class
 
 	}
 
-	public function pollVLE($row2, $fdata1, $request) {
+	public function pollVLE($request = '') {
 
-		$replyMess=$this->m_outObj->message_send_vle('poll-vle', $request, $row2->ad_url, $fdata1,1);
+		global $source,$destination;
+
+		$fdata2= array('command'=>'poll_vle');
+
+		$replyMess=$this->m_outObj->message_send_vle('poll-vle', $request, $source['vle-app'], $fdata2,1);
 
 		print_r( $replyMess);
 //		$data=json_decode($replyMess,true);
@@ -219,19 +232,20 @@ class Default_Model_Action_Class
 // Check we know this command/action
 		$result = $this->m_mysqli->query("
 			SELECT * 
-			FROM command_routes AS cr 
-			WHERE cr.cr_action = '".$data['command']."' 
+			FROM api_workflows AS wf, command_routes AS cr  
+			WHERE cr.cr_index=wf.wf_cr_index 
+			AND wf.wf_step = cq.cq_wf_step 
+			AND cr.cr_action = '".$data['command']."'
 			AND cr.cr_source = 'vle-api' ");
 		$row = $result->fetch_object();
 		
 		if ($result->num_rows) {
 // Put the command on the queue
 			if ($row->cr_route_type=='direct'){
-				$m_data = $this->doDirectAction($data['command'], $row->cr_function, $row2->ad_callback_url, $data['data'], $data['number']);
+				$m_data = $this->doDirectAction($data['command'], $row->cr_function, $destination[$row5->wf_destination], $data['data'], $data['number']);
 			}
 		}else{
 			$m_data = array('status'=>'NACK', 'data'=>'Command not known!', 'timestamp'=>time());
-//			$replyMess=$this->m_outObj->message_send_vle('error-vle', $request, $row2->ad_url, $m_data,1);
 		}
 
 
@@ -241,20 +255,19 @@ class Default_Model_Action_Class
 
 		$error='';
 
-/*		foreach($rowArr as $v){
+		foreach($rowArr as $v){
 			
 			if ($v != "") {
 				if (isset($data[$v])){
-					if ($data[$v]=="")	 {
-						$error.=" ".$v." has no value - ";
+					if (strlen($data[$v])<2)	 {
+						$error.=" ".$v.":".$data[$v]." - ";						
 					}
 				} else {
-					$error.=" ".$v." field missing - ";
+					$error.=" ".$v." field empty or missing - ";
 				}
 			} 
 
 		}
-*/
 		return $error;
 
 	}
@@ -262,7 +275,7 @@ class Default_Model_Action_Class
 
 	public function queueAction($mArr,$mNum,$action,$timestamp,$rowArr){
 		
-		$retData= array( 'command'=>$action, 'number'=>'', 'data'=>'Queued admin-api!', 'status'=>'', 'timestamp'=>time()) ;
+		$retData= array( 'command'=>$action, 'number'=>'', 'data'=>'Queued admin-api!', 'status'=>'', 'error' =>'', 'timestamp'=>time()) ;
 		$dataArr='';	
 		$result = $this->m_mysqli->query("	
 			INSERT INTO `queue_messages` (`mq_command`, `mq_number`, `mq_time_start`, `mq_status`) 
@@ -273,8 +286,8 @@ class Default_Model_Action_Class
 		$dataOK=true;
 // Build a multiple row insert using the data array
 		while (isset($mArr[$i]) && $dataOK==true){
-			$retData['error']=$this->dataCheck($mArr[$i],$rowArr);
-			if ($retData['error']=="") {
+			$retData['error'][$i]=$this->dataCheck($mArr[$i],$rowArr);
+			if ($retData['error'][$i]=="") {
 				if (isset($mArr[$i]['source_filename'])) 
 					$srcFileName = $mArr[$i]['source_filename']; 
 				else 
@@ -289,10 +302,18 @@ class Default_Model_Action_Class
 			}
 		}
 
-		$result = $this->m_mysqli->query($sqlCommands);
-//		$error .= "queueAcction - ".$this->m_mysqli->info;
+		if ($dataOK==false) {
+			$retData['number']=0;$retData['status']='NACK';
+			$this->m_mysqli->query("
+				UPDATE `queue_messages` 
+				SET `mq_status`= 'F', `mq_failed`= ".$i.", `mq_result`= '".json_encode($retData)."' 
+				WHERE mq_index='".$mess_id."' ");
+		}else{
+			$result = $this->m_mysqli->query($sqlCommands);
+			$retData['number']=$i;$retData['status']='ACK'; $retData['mqIndex']=$mess_id;
 		
-		if ($retData!='') {$retData['number']=$i;$retData['status']='ACK'; $retData['mqIndex']=$mess_id;} else {$retData['number']=0;$retData['status']='NACK';}
+		}
+
 		return $retData;
 	}
 
@@ -332,7 +353,7 @@ class Default_Model_Action_Class
 
 	public function doDirectAction($command, $function, $callbackUrl,$mArr, $number){
 		
-		echo $function;
+//		echo $function;
 		
 		$retData = $this->$function($command, $callbackUrl, $mArr,$number);
 		
@@ -341,32 +362,41 @@ class Default_Model_Action_Class
 
 
 	function doMediaPushFile($mArr,$mNum,$cqIndex){
-		
-		global $source, $destination; 
+
+		global $source,$destination;
 
 		$retData= array('cqIndex'=>$cqIndex, 'source_path'=> $mArr['source_path'], 'source_filename'=> $mArr['source_filename'], 'number'=> 0, 'result'=> 'N') ;
 
+		$inFile = $mArr['source_path'].$mArr['source_filename'];
 		$outFile = urlencode($mArr['source_path'].$mArr['source_filename']);
- 		$retData['scp'] = $this->transfer($source['admin'].$mArr['source_path'].$mArr['source_filename'] , $destination['media'].$cqIndex."_".$outFile);
+ 		if ($inFile != "") chmod($source['admin-files'].$inFile, 0775);
+		$retData['scp'] = $this->transfer($source['admin-files'].$mArr['source_path'].$mArr['source_filename'] , $destination['media-scp'].$cqIndex."_".$outFile);
 		if ($retData['scp'][0]==0) $retData['result']='Y'; else $retData['result']='F'; 
 
 		return $retData;
 	}
 
 	function doPushNextCommand($mArr,$mNum,$cqIndex){
+
+		global $source,$destination;
 		
 		$retData= array('cqIndex'=>$cqIndex, 'number'=> $mNum, 'result'=> 'N') ;
 		$postRetData['status']='N';
  		$result5 = $this->m_mysqli->query("
 			SELECT * 
-			FROM queue_commands AS cq, api_workflows AS wf, command_routes AS cr, api_destinations AS ad 
-			WHERE cq.cq_command=cr.cr_action AND cr.cr_index=wf.wf_cr_index AND wf.wf_ad_index=ad.ad_index AND wf.wf_step = 1 + cq.cq_wf_step AND cq.cq_index='".$cqIndex."'");
+			FROM queue_commands AS cq, api_workflows AS wf, command_routes AS cr  
+			WHERE cq.cq_command=cr.cr_action AND cr.cr_index=wf.wf_cr_index AND wf.wf_step = 1 + cq.cq_wf_step AND cq.cq_index='".$cqIndex."'");
 		$row5 = $result5->fetch_object();
 
-		$postRetData=$this->m_outObj->message_send_next_command($row5->wf_command,  $row5->ad_url, $cqIndex,  $row5->cq_mq_index, $row5->wf_step, $mArr, $mNum);
-		$retData['result']='Y';
-		$retData['debug']=$postRetData;
+		$postRetData=$this->m_outObj->message_send_next_command($row5->wf_command, $destination[$row5->wf_destination], $cqIndex, $row5->cq_mq_index, $row5->wf_step, $mArr, $mNum);
 
+		if (isset($postRetData['status'] ) && $postRetData['status'] == 'TIMEOUT'){
+			$retData['result']='N';
+			$retData['debug']=$postRetData;
+		} else {
+			$retData['result']='Y';
+			$retData['debug']=$postRetData;
+		}
 		return $retData;
 	}
 
@@ -381,9 +411,9 @@ class Default_Model_Action_Class
 		$result="Checking - ".$mqIndex;
 		
 		$result6 = $this->m_mysqli->query("
-			SELECT count(cq.cq_index) AS num, mq.mq_number, ad.ad_url, cr.cr_callback, cr.cr_delivery 
-			FROM queue_messages AS mq, queue_commands cq, command_routes AS cr, api_destinations AS ad 
-			WHERE mq.mq_index=cq.cq_mq_index AND cr.cr_action=mq.mq_command AND cr.cr_source=ad.ad_name AND mq.mq_index = '".$mqIndex."' AND cq.cq_status IN ('Y','F')");
+			SELECT count(cq.cq_index) AS num, mq.mq_number, cr.cr_callback, cr.cr_delivery 
+			FROM queue_messages AS mq, queue_commands cq, command_routes AS cr 
+			WHERE mq.mq_index=cq.cq_mq_index AND cr.cr_action=mq.mq_command AND mq.mq_index = '".$mqIndex."' AND cq.cq_status IN ('Y','F')");
 		if ($result6->num_rows!=0) {
 			$row6 = $result6->fetch_object();
 			if ($row6->num == $row6->mq_number && $row6->cr_delivery == 'single') {
@@ -408,7 +438,7 @@ class Default_Model_Action_Class
 					$result3 = $this->m_mysqli->query("
 						SELECT * 
 						FROM queue_messages AS mq, queue_commands cq 
-						WHERE mq.mq_index=cq.cq_mq_index AND mq.mq_index = '".$mqIndex."'  AND cq.cq_status = 'Y' LIMIT 1");
+						WHERE mq.mq_index=cq.cq_mq_index AND mq.mq_index = '".$mqIndex."'  AND cq.cq_status IN('Y','F') LIMIT 1");
 					$j=0;
 					$row3 = $result3->fetch_object();
 					if ($row3->mq_status=='N') {
@@ -428,17 +458,19 @@ class Default_Model_Action_Class
 	}
 	
 	public function doCallback(){
+
+		global $source,$destination;
 		
 		$result2 = $this->m_mysqli->query( "
-			SELECT mq.mq_index, mq.mq_status, mq.mq_number, mq.mq_returned, mq.mq_failed, mq.mq_result, mq_retry_count, ad.ad_url, cr.cr_callback, cr.cr_delivery 
-			FROM queue_messages AS mq, command_routes AS cr, api_destinations AS ad 
-			WHERE cr.cr_action=mq.mq_command AND cr.cr_source=ad.ad_name AND mq.mq_status IN('S','R') ORDER BY mq.mq_time_start");
+			SELECT mq.mq_index, mq.mq_status, mq.mq_number, mq.mq_returned, mq.mq_failed, mq.mq_result, mq_retry_count, cr.cr_callback, cr.cr_source, cr.cr_delivery 
+			FROM queue_messages AS mq, command_routes AS cr 
+			WHERE cr.cr_action=mq.mq_command AND mq.mq_status IN('S','R') ORDER BY mq.mq_time_start");
 		if (isset($result2->num_rows)) {
 	
 			while(	$row2 = $result2->fetch_object()) { 
 	
 				$mqResArr = json_decode($row2->mq_result, true);
-				$result3=$this->m_outObj->message_send_callback($row2->cr_callback, $row2->ad_url, $mqResArr, $row2->mq_number, $row2->mq_failed);
+				$result3=$this->m_outObj->message_send_callback($row2->cr_callback, $destination[$row2->cr_source], $mqResArr, $row2->mq_number, $row2->mq_failed);
 
 				$s = $row2->mq_status;
 				
@@ -452,7 +484,7 @@ class Default_Model_Action_Class
 						SET `cq_status`= 'C' 
 						WHERE cq_mq_index='".$row2->mq_index."' AND `cq_status`='Y' ");					
 				}  else  if ($result3['status'] == "ACK" && $row2->cr_delivery=='multiple'){
-					if ($row2->mq_number == $row2->mq_returned+1) $s='C'; else $s='N';
+					if ($row2->mq_number == $row2->mq_returned+1 || ($row2->mq_number == 1 && $row2->mq_returned == 1 )) $s='C'; else $s='N';
 					$cqIndex=$mqResArr['0']['cqIndex'];
 					$this->m_mysqli->query("
 						UPDATE `queue_commands` 

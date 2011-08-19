@@ -20,25 +20,13 @@ if (isset($_REQUEST['number']) && $_REQUEST['number']>=1) $number = $_REQUEST['n
 
 // Poll for any completed or failed commands on Media and Encoder queues
 
-	$result0 = $mysqli->query("SELECT ad.ad_url FROM api_destinations AS ad WHERE ad.ad_name = 'media-api'");
-	$row0 = $result0->fetch_object();
-	$fdata0 = array('command'=>'poll_media');
-
-	$result1 = $mysqli->query("SELECT ad.ad_url FROM api_destinations AS ad WHERE ad.ad_name = 'encoder-api'");
-	$row1 = $result1->fetch_object();
-	$fdata1 = array('command'=>'poll_encoder');
-
-	$result2 = $mysqli->query("SELECT ad.ad_url, ad.ad_callback_url FROM api_destinations AS ad WHERE ad.ad_name = 'vle-api'");
-	$row2 = $result2->fetch_object();
-	$fdata2= array('command'=>'poll_vle');
-
 	for ( $i = 1; $i <= $number; $i++) {
 
-		$dataObj->pollMedia($row0, $fdata0);
+		$dataObj->pollMedia();
 
-		$dataObj->pollEncoder($row1, $fdata1);
+		$dataObj->pollEncoder();
 
-//		$dataObj->pollVLE($row2, $fdata2);
+//		$dataObj->pollVLE();
 
 // sleep for n seconds
 flush();
