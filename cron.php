@@ -11,7 +11,7 @@
 	$outObj = new Default_Model_Output_Class($mysqli);
 	$dataObj = new Default_Model_Action_Class($mysqli,$outObj);
 	
-	$apCommand="curl -d \"number=5&time=2\" http://podcast-api-dev.open.ac.uk/poll.php";	
+	$apCommand="curl -d \"number=5&time=2\" ".$destination['admin-api']."/poll.php";	
 
 // Check and/or start 2s polling process
 

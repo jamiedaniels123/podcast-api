@@ -40,7 +40,7 @@
   		'encoder-scp' => '/Volumes/Data/Episode/EpisodeEngine/Inputs/',
 		'admin-api' => 'http://podcast-api-dev.open.ac.uk', 
 		'media-api' => 'http://media-podcast-api-dev.open.ac.uk', 
-		'encoder-api' => 'http://kmi-encoder-api-dev.open.ac.uk/', 
+		'encoder-api' => 'http://kmi-encoder-api-dev.open.ac.uk', 
 		'admin-vle' => 'http://podcast-admin-dev.open.ac.uk/vles/add/', 
 		'admin-app' => 'http://podcast-admin-dev.open.ac.uk/callbacks/add/' 
 	);
