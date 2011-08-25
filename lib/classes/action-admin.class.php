@@ -139,9 +139,14 @@ class Default_Model_Action_Class
 						if ( $v0['step'] == $row2->wf_steps || $v0['status']=='F') $status=$v0['status']; else $status='N';
 						if ($v0['step'] == $row2->cq_wf_step && $v0['step'] != $row2->wf_steps && $v0['status']=='Y') $step= $v0['step']+1; else $step= $v0['step']; 
  
+						if(isset($v0['meta_data'])) 
+							$v0['meta_data'] = unserialize(gzuncompress(stripslashes(base64_decode(strtr($v0['meta_data'], '-_,', '+/=')))));
+						if(isset($v0['debug'])) 
+							$v0['debug'] = unserialize(gzuncompress(stripslashes(base64_decode(strtr($v0['debug'], '-_,', '+/=')))));
+
 						$result3 = $this->m_mysqli->query("
 							UPDATE `queue_commands` 
-							SET `cq_result`='".json_encode($v0)."', `cq_status`='".$status."', `cq_wf_step`= '".$step."', `cq_update`='".date("Y-m-d H:i:s", time())."' 
+							SET `cq_result`='".serialize($v0)."', `cq_status`='".$status."', `cq_wf_step`= '".$step."', `cq_update`='".date("Y-m-d H:i:s", time())."' 
 							WHERE `cq_index`=  '".$v0['cqIndex']."' ");
 						$mqToCheck0[$v0['mqIndex']]=$v0['mqIndex'];
 					}
@@ -184,24 +189,29 @@ class Default_Model_Action_Class
 						}
 						if ( $row4->cq_filename != $v1['source_filename']){
 							$step= $v1['step']+1;
-							$mData = json_decode($row4->cq_data,true);
-							$mData['source_filename'] = $v1['source_filename']; 
-							$mData['destination_filename'] = $v1['destination_filename']; 
+							$mData = unserialize($row4->cq_data);
+							$mData['source_filename'] = $v1['source_filename'];
+							if (!strpos( $v1['source_filename'], '-____')) 
+								$mData['destination_filename'] = $v1['destination_filename']; 
 							$mData['destination_path'] = $v1['destination_path']; 
 							$mData['original_filename'] = $v1['original_filename'];
 							$mData['flavour'] = $v1['flavour'];
 							$mData['duration'] = $v1['duration'];
+							if(isset($v1['debug'])) 
+								$mData['debug'] = unserialize(gzuncompress(stripslashes(base64_decode(strtr($v1['debug'], '-_,', '+/=')))));
 							$this->m_mysqli->query("
 								INSERT INTO `queue_commands` ( `cq_mq_index`, `cq_command`,  `cq_filename`, `cq_data`, `cq_result`, `cq_time`, `cq_update`, `cq_wf_step`, `cq_status`) 
-								VALUES	('".$row4->cq_mq_index."','".$row4->cq_command."','".$v1['source_filename']."','".json_encode($mData)."','".json_encode($v1)."','".$row4->cq_time."','".date("Y-m-d H:i:s", time())."','".$step."', 'N')");
+								VALUES	('".$row4->cq_mq_index."','".$row4->cq_command."','".$v1['source_filename']."','".serialize($mData)."','".serialize($v1)."','".$row4->cq_time."','".date("Y-m-d H:i:s", time())."','".$step."', 'N')");
 							$this->m_mysqli->query("
 								UPDATE `queue_messages` 
 								SET `mq_number`= mq_number + 1 
 								WHERE mq_index='".$row4->cq_mq_index."' ");
 						}else{ 
+							if(isset($v1['debug'])) 
+								$v1['debug'] = unserialize(gzuncompress(stripslashes(base64_decode(strtr($v1['debug'], '-_,', '+/=')))));
 							$result5 = $this->m_mysqli->query("
 								UPDATE `queue_commands` 
-								SET `cq_result`='".json_encode($v1)."', `cq_status`='".$status."', `cq_wf_step`= '".$step."', `cq_update`='".date("Y-m-d H:i:s", time())."' 
+								SET `cq_result`='".serialize($v1)."', `cq_status`='".$status."', `cq_wf_step`= '".$step."', `cq_update`='".date("Y-m-d H:i:s", time())."' 
 								WHERE `cq_index`=  '".$v1['cqIndex']."' ");
 						}
 						$mqToCheck1[$v1['mqIndex']]=$v1['mqIndex'];
@@ -260,7 +270,11 @@ class Default_Model_Action_Class
 			if ($v != "") {
 				if (isset($data[$v])){
 					if (strlen($data[$v])<2)	 {
-						$error.=" ".$v.":".$data[$v]." - ";						
+						if (is_array($data[$v])) 
+							$add_to_error=""; 
+						else 
+							$add_to_error=" ".$v.":".$data[$v]." - ";	
+						$error .=  $add_to_error;					
 					}
 				} else {
 					$error.=" ".$v." field empty or missing - ";
@@ -288,13 +302,16 @@ class Default_Model_Action_Class
 		while (isset($mArr[$i]) && $dataOK==true){
 			$retData['error'][$i]=$this->dataCheck($mArr[$i],$rowArr);
 			if ($retData['error'][$i]=="") {
-				if (isset($mArr[$i]['source_filename'])) 
+				if (isset($mArr[$i]['source_filename']) && $mArr[$i]['source_filename']!='') 
 					$srcFileName = $mArr[$i]['source_filename']; 
-				else 
+				else if (isset($mArr[$i]['destination_filename']) && $mArr[$i]['destination_filename']!='')
+					$srcFileName = $mArr[$i]['destination_filename']; 
+				else	
 					$srcFileName = "";
 				if($i!=0) 
-					$sqlCommands.= ", ";		
-				$sqlCommands.= "('".$action."', '".$srcFileName."', '".$mess_id."','".json_encode($mArr[$i])."','".date("Y-m-d H:i:s", $timestamp)."', '', 'N')"; 
+					$sqlCommands.= ", ";
+				if(isset($mArr[$i]['meta_data'])) $mArr[$i]['meta_data'] = unserialize(gzuncompress(stripslashes(base64_decode(strtr($mArr[$i]['meta_data'], '-_,', '+/='))))); 
+				$sqlCommands.= "('".$action."', '".$srcFileName."', '".$mess_id."','".serialize($mArr[$i])."','".date("Y-m-d H:i:s", $timestamp)."', '', 'N')"; 
 				
 				$i++;
 			} else{
@@ -306,7 +323,7 @@ class Default_Model_Action_Class
 			$retData['number']=0;$retData['status']='NACK';
 			$this->m_mysqli->query("
 				UPDATE `queue_messages` 
-				SET `mq_status`= 'F', `mq_failed`= ".$i.", `mq_result`= '".json_encode($retData)."' 
+				SET `mq_status`= 'F', `mq_failed`= ".$i.", `mq_result`= '".serialize($retData)."' 
 				WHERE mq_index='".$mess_id."' ");
 		}else{
 			$result = $this->m_mysqli->query($sqlCommands);
@@ -330,10 +347,10 @@ class Default_Model_Action_Class
 			while(	$row = $result4->fetch_object()) {
 			$debug[] = $row;
 
-				$cqResult=json_decode($row->cq_result,true); 
+				$cqResult=unserialize($row->cq_result); 
 					$function=$row->wf_function;
 // Call the action with the data
-					$retData = $this->$function(json_decode($row->cq_data,true),1,$row->cq_index);
+					$retData = $this->$function(unserialize($row->cq_data),1,$row->cq_index);
 					if ($retData['result']=='F') {
 						$status='F';
 						$step=$row->wf_step;
@@ -343,7 +360,7 @@ class Default_Model_Action_Class
 					}
 					$result = $this->m_mysqli->query("	
 						UPDATE `queue_commands` 
-						SET `cq_result`='".json_encode($retData)."', `cq_status`='".$status."', `cq_wf_step`='".$step."', `cq_update`='".date("Y-m-d H:i:s", time())."' 
+						SET `cq_result`='".serialize($retData)."', `cq_status`='".$status."', `cq_wf_step`='".$step."', `cq_update`='".date("Y-m-d H:i:s", time())."' 
 						WHERE `cq_index`=  '".$row->cq_index."' ");
 			}
 		}
@@ -369,7 +386,6 @@ class Default_Model_Action_Class
 
 		$inFile = $mArr['source_path'].$mArr['source_filename'];
 		$outFile = urlencode($mArr['source_path'].$mArr['source_filename']);
- 		if ($inFile != "") chmod($source['admin-files'].$inFile, 0775);
 		$retData['scp'] = $this->transfer($source['admin-files'].$mArr['source_path'].$mArr['source_filename'] , $destination['media-scp'].$cqIndex."_".$outFile);
 		if ($retData['scp'][0]==0) $retData['result']='Y'; else $retData['result']='F'; 
 
@@ -387,6 +403,8 @@ class Default_Model_Action_Class
 			FROM queue_commands AS cq, api_workflows AS wf, command_routes AS cr  
 			WHERE cq.cq_command=cr.cr_action AND cr.cr_index=wf.wf_cr_index AND wf.wf_step = 1 + cq.cq_wf_step AND cq.cq_index='".$cqIndex."'");
 		$row5 = $result5->fetch_object();
+
+		if(isset($mArr['meta_data'])) $mArr['meta_data'] = strtr(base64_encode(addslashes(gzcompress(serialize($mArr['meta_data']),9))), '+/=', '-_,');
 
 		$postRetData=$this->m_outObj->message_send_next_command($row5->wf_command, $destination[$row5->wf_destination], $cqIndex, $row5->cq_mq_index, $row5->wf_step, $mArr, $mNum);
 
@@ -424,14 +442,14 @@ class Default_Model_Action_Class
 				$i=0;
 				$j=0;
 				while(	$row3 = $result3->fetch_object()){
-					$r_data[$i]= json_decode($row3->cq_result, true); 
+					$r_data[$i]= unserialize($row3->cq_result); 
 					$r_data[$i]['number']=$i+1;
 					if ($row3->cq_status=='F') $j++;
 					$i++;
 				}
 				$result2 = $this->m_mysqli->query("
 					UPDATE `queue_messages` 
-					SET `mq_time_complete` = '".date("Y-m-d H:i:s", time())."' ,`mq_status`= 'S', `mq_failed`= ".$j.", `mq_result`='".json_encode($r_data)."' 
+					SET `mq_time_complete` = '".date("Y-m-d H:i:s", time())."' ,`mq_status`= 'S', `mq_failed`= ".$j.", `mq_result`='".serialize($r_data)."' 
 					WHERE mq_index='".$mqIndex."' ");
 			} else {
 				if ($row6->cr_delivery == 'multiple'){
@@ -442,12 +460,12 @@ class Default_Model_Action_Class
 					$j=0;
 					$row3 = $result3->fetch_object();
 					if ($row3->mq_status=='N') {
-						$r_data[0]= json_decode($row3->cq_result, true); 
+						$r_data[0]= unserialize($row3->cq_result); 
 						$r_data[0]['number']=1;
 						if ($row3->cq_status=='F') $j++;					
 						$result2 = $this->m_mysqli->query("
 							UPDATE `queue_messages` 
-							SET `mq_time_complete` = '".date("Y-m-d H:i:s", time())."' ,`mq_status`= 'S', `mq_failed`= ".$j.", `mq_returned`= mq_returned + 1, `mq_retry_count`= 0, `mq_result`='".json_encode($r_data)."' 
+							SET `mq_time_complete` = '".date("Y-m-d H:i:s", time())."' ,`mq_status`= 'S', `mq_failed`= ".$j.", `mq_returned`= mq_returned + 1, `mq_retry_count`= 0, `mq_result`='".serialize($r_data)."' 
 							WHERE mq_index='".$mqIndex."' ");
 					}
 				}
@@ -469,7 +487,7 @@ class Default_Model_Action_Class
 	
 			while(	$row2 = $result2->fetch_object()) { 
 	
-				$mqResArr = json_decode($row2->mq_result, true);
+				$mqResArr = unserialize($row2->mq_result);
 				$result3=$this->m_outObj->message_send_callback($row2->cr_callback, $destination[$row2->cr_source], $mqResArr, $row2->mq_number, $row2->mq_failed);
 
 				$s = $row2->mq_status;
@@ -484,7 +502,7 @@ class Default_Model_Action_Class
 						SET `cq_status`= 'C' 
 						WHERE cq_mq_index='".$row2->mq_index."' AND `cq_status`='Y' ");					
 				}  else  if ($result3['status'] == "ACK" && $row2->cr_delivery=='multiple'){
-					if ($row2->mq_number == $row2->mq_returned+1 || ($row2->mq_number == 1 && $row2->mq_returned == 1 )) $s='C'; else $s='N';
+					if ($row2->mq_number == $row2->mq_returned || ($row2->mq_number == 1 && $row2->mq_returned == 1 )) $s='C'; else $s='N';
 					$cqIndex=$mqResArr['0']['cqIndex'];
 					$this->m_mysqli->query("
 						UPDATE `queue_commands` 
