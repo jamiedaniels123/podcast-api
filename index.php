@@ -32,6 +32,7 @@ require_once("./lib/classes/output.class.php");
 		$row = $result->fetch_array();
 		if ($result->num_rows) {
 //  && count($data['data'])>1	
+		if (is_array($data['data'])) {
 // Put command message on message queue and data for each request on the command queue
 
 			$m_data = $dataObj->queueAction($data['data'],$data['number'],$data['command'],$data['timestamp'],$row);
@@ -39,7 +40,9 @@ require_once("./lib/classes/output.class.php");
 // Do anything now which needs to be done directly	
 			$cqCommand="'direct'";
 			$r_data = $dataObj->doNextAction($m_data['mqIndex'], $cqCommand);
-	
+		} else {
+			$m_data = array('status'=>'NACK', 'data'=>'Empty data array of commands! - '.$apiName.'-'.$version, 'timestamp'=>time());
+		}
 	}else{
 		$m_data = array('status'=>'NACK', 'data'=>'Command not known! - '.$apiName.'-'.$version, 'timestamp'=>time());
 	}
@@ -58,6 +61,5 @@ require_once("./lib/classes/output.class.php");
 // Get rid of any debug and output the result to the caller
 	ob_clean();
 	file_put_contents("php://output", json_encode($m_data));
-//	ob_end_clean();
 
 ?>

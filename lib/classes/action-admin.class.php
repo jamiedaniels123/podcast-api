@@ -270,10 +270,10 @@ class Default_Model_Action_Class
 			if ($v != "") {
 				if (isset($data[$v])){
 					if (strlen($data[$v])<2)	 {
-						if (is_array($data[$v])) 
+						if (is_array($data[$v]) && count($data[$v]) > 1) 
 							$add_to_error=""; 
 						else 
-							$add_to_error=" ".$v.":".$data[$v]." - ";	
+							$add_to_error=" ".$v.":".serialize($data[$v])." - ";	
 						$error .=  $add_to_error;					
 					}
 				} else {
