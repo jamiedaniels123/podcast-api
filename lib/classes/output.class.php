@@ -41,12 +41,16 @@ class Default_Model_Output_Class
 //		global $debug;
 		$postData=array(	'command'=>$command, 'number'=>$number, 'failed'=>$failed, 'data'=>$data, 'timestamp'=>time());
 		$messData=json_encode($postData);
+// error_log("Post data =".json_encode($postData)." - ".$callbackUrl);  // debug
+		
 //		$debug=$messData;
 		$postData=array('mess'=>json_encode($postData));
-		$response=$this->rest_helper($callbackUrl, $postData, 'POST', 'json');
-
+		if ($response=$this->rest_helper($callbackUrl, $postData, 'POST', 'json'))
+			$response_for_log = json_encode($response);
+		else
+			$response_for_log = "No response from ".$callbackUrl;
 		$result = $this->m_mysqli->query(" INSERT INTO `api_log` (`al_message`, `al_reply`, `al_dest`, `al_result_data`, `al_timestamp`) 
-															VALUES ( '".$messData."', '".json_encode($response)."', '".$callbackUrl."',  '', '".date("Y-m-d H:i:s", time())."' )");
+															VALUES ( '".$messData."', '".$response_for_log."', '".$callbackUrl."',  '', '".date("Y-m-d H:i:s", time())."' )");
 		
 		return $response;
 	} 
