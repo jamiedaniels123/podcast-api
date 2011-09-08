@@ -202,9 +202,18 @@ class Default_Model_Action_Class
 							$this->m_mysqli->query("
 								INSERT INTO `queue_commands` ( `cq_mq_index`, `cq_command`,  `cq_filename`, `cq_data`, `cq_result`, `cq_time`, `cq_update`, `cq_wf_step`, `cq_status`) 
 								VALUES	('".$row4->cq_mq_index."','".$row4->cq_command."','".$v1['source_filename']."','".serialize($mData)."','".serialize($v1)."','".$row4->cq_time."','".date("Y-m-d H:i:s", time())."','".$step."', 'N')");
+							
+							$result5 = $this->m_mysqli->query("
+								SELECT cq_index 
+								FROM `queue_commands` 
+								WHERE cq_mq_index='".$row4->cq_mq_index."' ");
+							if ($result5->num_rows == 2) 
+								$mqNumber = 1;
+							else
+								$mqNumber = $result5->num_rows - 1;
 							$this->m_mysqli->query("
 								UPDATE `queue_messages` 
-								SET `mq_number`= mq_number + 1 
+								SET `mq_number`= '".$mqNumber."'  
 								WHERE mq_index='".$row4->cq_mq_index."' ");
 						}else{ 
 							if(isset($v1['debug'])) 
@@ -291,6 +300,8 @@ class Default_Model_Action_Class
 		
 		$retData= array( 'command'=>$action, 'number'=>'', 'data'=>'Queued admin-api!', 'status'=>'', 'error' =>'', 'timestamp'=>time()) ;
 		$dataArr='';	
+// Fix incorrect count sent in admin message by counting the number of data rows 
+//		$mNum = count($mArr,0);
 		$result = $this->m_mysqli->query("	
 			INSERT INTO `queue_messages` (`mq_command`, `mq_number`, `mq_time_start`, `mq_status`) 
 			VALUES ( '".$action."',  '".$mNum."', '".date("Y-m-d H:i:s", $timestamp)."', 'N' )");
@@ -496,13 +507,15 @@ class Default_Model_Action_Class
 					$s='F';
 					mail ("i.newton@open.ac.uk", "Admin API callback error", "Sent:\n\n".$row2->mq_result."\n\nReply:\n\n".json_encode($result3),"From:i.newton@open.ac.uk");
 				}  else  if ($result3['status'] == "ACK" && $row2->cr_delivery=='single'){
+// This is where we check how many of the commands set by a single message are returned. 					
 					$s='C';
 					$this->m_mysqli->query("
 						UPDATE `queue_commands` 
 						SET `cq_status`= 'C' 
 						WHERE cq_mq_index='".$row2->mq_index."' AND `cq_status`='Y' ");					
 				}  else  if ($result3['status'] == "ACK" && $row2->cr_delivery=='multiple'){
-					if ($row2->mq_number == $row2->mq_returned || ($row2->mq_number == 1 && $row2->mq_returned == 1 )) $s='C'; else $s='N';
+// This is where we check how many of the spawned flavours we have returned to check if we have completed mq_status set to C if number complete					
+					if ($row2->mq_number == $row2->mq_returned) $s='C'; else $s='N';
 					$cqIndex=$mqResArr['0']['cqIndex'];
 					$this->m_mysqli->query("
 						UPDATE `queue_commands` 
