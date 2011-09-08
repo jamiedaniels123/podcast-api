@@ -39,7 +39,8 @@ require_once("./lib/classes/output.class.php");
 	
 // Do anything now which needs to be done directly	
 			$cqCommand="'direct'";
-			$r_data = $dataObj->doNextAction($m_data['mqIndex'], $cqCommand);
+			if ( isset($m_data['mqIndex']) )
+				$r_data = $dataObj->doNextAction($m_data['mqIndex'], $cqCommand);
 		} else {
 			$m_data = array('status'=>'NACK', 'data'=>'Empty data array of commands! - '.$apiName.'-'.$version, 'timestamp'=>time());
 		}
