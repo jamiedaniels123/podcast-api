@@ -35,6 +35,7 @@ require_once("./lib/classes/output.class.php");
 		if (is_array($data['data'])) {
 // Put command message on message queue and data for each request on the command queue
 
+			//$m_data = $dataObj->queueAction($data['data'],$data['number'],$data['command'],$data['timestamp'],$row);
 			$m_data = $dataObj->queueAction($data['data'],$data['number'],$data['command'],$data['timestamp'],$row);
 	
 // Do anything now which needs to be done directly	
