@@ -43,7 +43,7 @@
 		'encoder-api' => 'http://kmi-encoder-api-dev.open.ac.uk', 
 		'admin-vle' => 'http://podcast-admin-dev.open.ac.uk/vles/add/', 
 		'admin-app' => 'http://podcast-admin-dev.open.ac.uk/callbacks/add/',
-		'debug_email' => 'jdd7@openmail.ac.uk'		
+		'debug_email' => 'cj3998@openmail.ac.uk'		
 	);
 
 ?>

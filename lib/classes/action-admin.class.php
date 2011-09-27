@@ -107,12 +107,11 @@ class Default_Model_Action_Class
 	}
 	
 	function transfer($src, $dest) {
-			
+		chmod($src, 0664);
 		$cmdline = "/usr/bin/scp -p ".escapeshellcmd($src)." ".escapeshellcmd($dest)." 2>&1";
 //		echo "<p>Transfer cmd line =".$cmdline."</p>\n";  // debug
 		//error_log("Transfer cmd line =".$cmdline);  // debug
 		exec($cmdline, $out, $code);
-	  
 		return array($code, $out);
 	 }
 
@@ -321,6 +320,8 @@ class Default_Model_Action_Class
 					$srcFileName = "";
 				if($i!=0) 
 					$sqlCommands.= ", ";
+				
+				// If there is an element entitled meta data that has been heavily encoded then we are dealing with a youtube command.
 				if(isset($mArr[$i]['meta_data'])) $mArr[$i]['meta_data'] = unserialize(gzuncompress(stripslashes(base64_decode(strtr($mArr[$i]['meta_data'], '-_,', '+/='))))); 
 				$sqlCommands.= "('".$action."', '".$srcFileName."', '".$mess_id."','".serialize($mArr[$i])."','".date("Y-m-d H:i:s", $timestamp)."', '', 'N')"; 
 				
@@ -396,6 +397,9 @@ class Default_Model_Action_Class
 		$retData= array('cqIndex'=>$cqIndex, 'source_path'=> $mArr['source_path'], 'source_filename'=> $mArr['source_filename'], 'number'=> 0, 'result'=> 'N') ;
 
 		$inFile = $mArr['source_path'].$mArr['source_filename'];
+		$fullpath=$source['admin-files'].$inFile;
+		chmod($fullpath, 0664);  // BH 2010921 - this is probably where the SOURCE file needs to be changed to 664 prior to transfer
+
 		$outFile = urlencode($mArr['source_path'].$mArr['source_filename']);
 		$retData['scp'] = $this->transfer($source['admin-files'].$mArr['source_path'].$mArr['source_filename'] , $destination['media-scp'].$cqIndex."_".$outFile);
 		if ($retData['scp'][0]==0) $retData['result']='Y'; else $retData['result']='F'; 
