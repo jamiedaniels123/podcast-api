@@ -27,6 +27,7 @@ class Default_Model_Output_Class
 		$response=$this->rest_helper($apiUrl, $postData, 'POST', 'json');
 
 		if ((isset($command) && $command!='poll-media' && $command!='poll-encoder') || (isset($response['status']) && ($response['status'] =='NACK' || $response['status'] =='TIMEOUT' || $response['status'] =='Y' ))) {
+		  // BH 20110929 : Comment - this avoids filling the api-log with polling messages that would swamp it
 //		if (isset($command) && $command!='poll-encoder') {
 			$result = $this->m_mysqli->query("
 				INSERT INTO `api_log` (`al_message`, `al_reply`, `al_dest`, `al_timestamp`) 

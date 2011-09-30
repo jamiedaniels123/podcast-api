@@ -6,20 +6,23 @@
 	#  Admin-api Class File to handle file service actions and provide responses.
 \*=========================================================================================*/
 
-class Default_Model_Action_Class 
-
-  {
+class Default_Model_Action_Class {
+	
+	const ADMIN_EMAIL = 'c.jackson@open.ac.uk';
+	
     protected $m_mysqli,$m_outObj;
 	
 	/**  * Constructor  */
-    function Default_Model_Action_Class($mysqli,$outObj){
+  function Default_Model_Action_Class($mysqli,$outObj){
+  
 		$this->m_mysqli = $mysqli;
 		$this->m_outObj = $outObj;
 	}  
 
-// ------ User stuff
+	// ------ User stuff
 
 	function objectToArray($d) {
+	
 		if (is_object($d)) {
 			$d = get_object_vars($d);
 		}
@@ -32,37 +35,34 @@ class Default_Model_Action_Class
 		}
 	}
 
-    function PsExec($commandJob) {
+	function PsExec($commandJob) {
+		
+		$command = $commandJob.' > /dev/null 2>&1 & echo $!';
+		exec($command ,$op);
+		$pid = (int)$op[0];
+		if($pid!="") {
+			return $pid;
+		}
+		return false;
+	}
+		
+	function PsExists($pid) {
+	
+		exec("ps ax | grep ".$pid." 2>&1", $output);
+		
+		while( list(,$row) = each($output) ) {
+			$row_array = explode(" ", $row);
+			$check_pid = $row_array[0];
+			if($pid == $check_pid) {
+				return true;
+			}
+		}
+		return false;
+	}
 
-        $command = $commandJob.' > /dev/null 2>&1 & echo $!';
-        exec($command ,$op);
-        $pid = (int)$op[0];
-        if($pid!="") return $pid;
-
-        return false;
-    }
-
-    function PsExists($pid) {
-
-        exec("ps ax | grep $pid 2>&1", $output);
-
-        while( list(,$row) = each($output) ) {
-
-                $row_array = explode(" ", $row);
-                $check_pid = $row_array[0];
-
-                if($pid == $check_pid) {
-                        return true;
-                }
-
-        }
-
-        return false;
-    }
-
-    function PsKill($pid) {
-        exec("kill -9 $pid", $output);
-    }
+	function PsKill($pid) {
+	exec("kill -9 ".$pid, $output);
+	}
 
 	public function startCheckProcess($apCommand) {
 
@@ -179,25 +179,31 @@ class Default_Model_Action_Class
 						AND `cq_index`=  '".$v1['cqIndex']."' ");
 					if ($result4->num_rows) {
 						$row4=$result4->fetch_object();
-						if ($v1['step'] == $row4->cq_wf_step ) $step= $v1['step']+1; else $step = $v1['step']; 
+						if ($v1['step'] == $row4->cq_wf_step ) {
+							$step= $v1['step']+1;
+						} else {
+							$step = $v1['step']; 
+						}
 						if ( $v1['step'] == $row4->wf_steps  || $v1['status']=='F') {
 							$status=$v1['status'];
 							$step= $v1['step'];
 						} else {
 							$status='N'; 
 						}
-						if ( $row4->cq_filename != $v1['source_filename']){
+						if ( $row4->cq_filename != $v1['source_filename']) {
 							$step= $v1['step']+1;
 							$mData = unserialize($row4->cq_data);
 							$mData['source_filename'] = $v1['source_filename'];
-							if (!strpos( $v1['source_filename'], '-____')) 
-								$mData['destination_filename'] = $v1['destination_filename']; 
+							if (!strpos( $v1['source_filename'], '-____')) {
+								$mData['destination_filename'] = $v1['destination_filename'];
+							}
 							$mData['destination_path'] = $v1['destination_path']; 
 							$mData['original_filename'] = $v1['original_filename'];
 							$mData['flavour'] = $v1['flavour'];
 							$mData['duration'] = $v1['duration'];
-							if(isset($v1['debug'])) 
+							if(isset($v1['debug'])) {
 								$mData['debug'] = unserialize(gzuncompress(stripslashes(base64_decode(strtr($v1['debug'], '-_,', '+/=')))));
+							}
 							$this->m_mysqli->query("
 								INSERT INTO `queue_commands` ( `cq_mq_index`, `cq_command`,  `cq_filename`, `cq_data`, `cq_result`, `cq_time`, `cq_update`, `cq_wf_step`, `cq_status`) 
 								VALUES	('".$row4->cq_mq_index."','".$row4->cq_command."','".$v1['source_filename']."','".serialize($mData)."','".serialize($v1)."','".$row4->cq_time."','".date("Y-m-d H:i:s", time())."','".$step."', 'N')");
@@ -206,17 +212,19 @@ class Default_Model_Action_Class
 								SELECT cq_index 
 								FROM `queue_commands` 
 								WHERE cq_mq_index='".$row4->cq_mq_index."' ");
-							if ($result5->num_rows == 2) 
+							if ($result5->num_rows == 2) {
 								$mqNumber = 1;
-							else
+							} else {
 								$mqNumber = $result5->num_rows - 1;
+							}
 							$this->m_mysqli->query("
 								UPDATE `queue_messages` 
 								SET `mq_number`= '".$mqNumber."'  
 								WHERE mq_index='".$row4->cq_mq_index."' ");
-						}else{ 
-							if(isset($v1['debug'])) 
+						} else { 
+							if(isset($v1['debug'])) {
 								$v1['debug'] = unserialize(gzuncompress(stripslashes(base64_decode(strtr($v1['debug'], '-_,', '+/=')))));
+							}
 							$result5 = $this->m_mysqli->query("
 								UPDATE `queue_commands` 
 								SET `cq_result`='".serialize($v1)."', `cq_status`='".$status."', `cq_wf_step`= '".$step."', `cq_update`='".date("Y-m-d H:i:s", time())."' 
@@ -477,7 +485,9 @@ class Default_Model_Action_Class
 					if ($row3->mq_status=='N') {
 						$r_data[0]= unserialize($row3->cq_result); 
 						$r_data[0]['number']=1;
-						if ($row3->cq_status=='F') $j++;					
+						if ($row3->cq_status=='F') {
+						  $j++;
+						}					
 						$result2 = $this->m_mysqli->query("
 							UPDATE `queue_messages` 
 							SET `mq_time_complete` = '".date("Y-m-d H:i:s", time())."' ,`mq_status`= 'S', `mq_failed`= ".$j.", `mq_returned`= mq_returned + 1, `mq_retry_count`= 0, `mq_result`='".serialize($r_data)."' 
@@ -485,6 +495,10 @@ class Default_Model_Action_Class
 					}
 				}
 			}
+		}
+		
+		if ($mqIndex==54) {
+		  error_log($result);
 		}
 		return $result;
 
@@ -509,7 +523,7 @@ class Default_Model_Action_Class
 				
 				if ($result3['status'] == "NACK" ) {
 					$s='F';
-					mail ("i.newton@open.ac.uk", "Admin API callback error", "Sent:\n\n".$row2->mq_result."\n\nReply:\n\n".json_encode($result3),"From:i.newton@open.ac.uk");
+					mail (self::ADMIN_EMAIL, "Admin API callback error", "Sent:\n\n".$row2->mq_result."\n\nReply:\n\n".json_encode($result3),"From:".self::ADMIN_EMAIL);
 				}  else  if ($result3['status'] == "ACK" && $row2->cr_delivery=='single'){
 // This is where we check how many of the commands set by a single message are returned. 					
 					$s='C';
@@ -518,19 +532,27 @@ class Default_Model_Action_Class
 						SET `cq_status`= 'C' 
 						WHERE cq_mq_index='".$row2->mq_index."' AND `cq_status`='Y' ");					
 				}  else  if ($result3['status'] == "ACK" && $row2->cr_delivery=='multiple'){
-// This is where we check how many of the spawned flavours we have returned to check if we have completed mq_status set to C if number complete					
-					if ($row2->mq_number == $row2->mq_returned) $s='C'; else $s='N';
+// This is where we check how many of the spawned flavours we have returned to check if we have completed mq_status set to C if number complete				
+					$s='N';	
+					/*if ($row2->mq_number == $row2->mq_returned) { 
+					  $s='C';
+					} else {
+					  $s='N';
+					}*/
 					$cqIndex=$mqResArr['0']['cqIndex'];
 					$this->m_mysqli->query("
 						UPDATE `queue_commands` 
 						SET `cq_status`= 'C' 
-						WHERE cq_index='".$cqIndex."'");					
+						WHERE cq_index='".$cqIndex."'");
 				} else if ($row2->mq_retry_count<2) {
-					mail ("i.newton@open.ac.uk", "Admin API callback warning resending ->", "Sent:\n\n".$row2->mq_result."\n\nReply:\n\n".json_encode($result3),"From:i.newton@open.ac.uk");
+					mail (self::ADMIN_EMAIL, "Admin API callback warning resending ->", "Sent:\n\n".$row2->mq_result."\n\nReply:\n\n".json_encode($result3),"From:".self::ADMIN_EMAIL);
 				} else {
 					$s='T';
-					mail ("i.newton@open.ac.uk", "Admin API callback error connection timed out!", "Sent:\n\n".$row2->mq_result."\n\nReply:\n\nNone","From:i.newton@open.ac.uk");
+					mail (self::ADMIN_EMAIL, "Admin API callback error connection timed out!", "Sent:\n\n".$row2->mq_result."\n\nReply:\n\nNone","From:".self::ADMIN_EMAIL);
 				}
+				
+				// Updates the umbrella command setting the status accordingly.
+				// If we are generating multiple flavours
 				$this->m_mysqli->query("
 					UPDATE `queue_messages` 
 					SET `mq_status`= '".$s."', `mq_retry_count`= mq_retry_count + 1 
