@@ -4,3 +4,4 @@
 /.settings/org.eclipse.php.core.prefs
 /archive
 /include
+/lib/config.php
